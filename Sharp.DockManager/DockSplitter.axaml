@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             
+             xmlns:idc="using:Sharp.DockManager"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Sharp.DockManager.DockSplitter">
+  <idc:DockSplitter.Styles>
+    <Style Selector="idc|DockSplitter">
+      <Setter Property="MinWidth" Value="5"/>
+      <Setter Property="MinHeight" Value="5"/>
+      <!--<Setter Property="Stylus.IsPressAndHoldEnabled" Value="false"/>BasedOn="{StaticResource {x:Type Thumb}}"-->
+      <Setter Property="Background" Value="Red"/>
+      <Setter Property="Cursor"
+              Value="{Binding (DockPanel.Dock), RelativeSource={RelativeSource Self}, Converter={x:Static idc:CursorConverter.Instance}}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type idc:DockSplitter}">
+            <Border Background="{TemplateBinding Background}"/>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </idc:DockSplitter.Styles>
+</UserControl>
+<!---->
+
