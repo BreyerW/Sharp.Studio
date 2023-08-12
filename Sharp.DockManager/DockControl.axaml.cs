@@ -16,17 +16,23 @@ using System.Diagnostics;
 using System;
 using System.Collections.Generic;
 using Avalonia.Platform;
+using System.Runtime.InteropServices;
 
 namespace Sharp.DockManager
 {
     public class DockControl : DockPanel
     {
+        delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+        //TODO: XQueryTree for X11 based Linux and for macos NSWindow.orderedIndex
+        [DllImport("USER32.DLL")]
+        static extern bool EnumWindows(EnumWindowsProc enumFunc, IntPtr lParam);
+
         private static Window draggedItem = null;
         private static (Control control, Dock? area) lastTrigger = default;
         private static TabItem selectedTab = null;
         private static Point lastMousePos;
         private static PixelPoint mousePosOffset;
-        private static LinkedList<Window> sortedWindows = new LinkedList<Window>();
+        private static Dictionary<Window,int> sortedWindows = new ();
         internal Border adornedElement = new Border();
         internal Canvas canvas = new Canvas();
         //turn into colection populated on attachedtotree and removed on detached
@@ -35,14 +41,26 @@ namespace Sharp.DockManager
         public static bool preventEmptyDockControlInMainWindow = false;
         public ObservableCollection<IDockable> docked = new();
 
+        /// <summary>
+        /// Gets the z-order for one or more windows atomically with respect to each other. In Windows, smaller z-order is higher. If the window is not top level, the z order is returned as -1. 
+        /// </summary>
+        private static void UpdateZOrder()
+        {
+            var index = 0;
+            EnumWindows((wnd, param) =>
+            {
+                var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
+                foreach (var wind in lifetime.Windows)
+                    if (wind.PlatformImpl.Handle.Handle == wnd)
+                        CollectionsMarshal.GetValueRefOrAddDefault(sortedWindows, wind, out _) = index;
+                index++;
+                return true;
+            }, IntPtr.Zero);
+        }
+
         //testng
         static DockControl()
         {
-            GotFocusEvent.AddClassHandler<Window>((w, e) =>
-            {
-                sortedWindows.Remove(w);
-                sortedWindows.AddLast(w);
-            }, handledEventsToo: true);
             PointerPressedEvent.AddClassHandler<Control>((s, e) =>
             {
                 lastMousePos = e.GetPosition(s);
@@ -51,8 +69,6 @@ namespace Sharp.DockManager
  {
 
      var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
-
-
      if (draggedItem is null && e.GetCurrentPoint(null).Properties.IsLeftButtonPressed)
      {
 
@@ -147,11 +163,13 @@ namespace Sharp.DockManager
         }
         private static void DraggedItem_PositionChanged(object? sender, PixelPointEventArgs e)
         {
+            //TODO: do it only once after window is dragged off
+            UpdateZOrder();
             var screenPos = e.Point + mousePosOffset;
             (Control control, Dock? area) currentTrigger = default;
 
             Control? hit = null;
-            foreach (var window in sortedWindows)
+            foreach (var (window, zorder) in sortedWindows.OrderBy(key=> key.Value))
             {
                 if (window == draggedItem) continue;
                 var pos = window.PointToClient(screenPos);
