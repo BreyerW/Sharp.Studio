@@ -1,13 +1,14 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:Sharp.Studio"
-             x:Class="Sharp.Studio.App">
+             x:Class="Sharp.Studio.App"
+			 RequestedThemeVariant="Default">
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
 
     <Application.Styles>
       
-        <FluentTheme Mode="Light"/>
+        <FluentTheme/>
     </Application.Styles>
 </Application>

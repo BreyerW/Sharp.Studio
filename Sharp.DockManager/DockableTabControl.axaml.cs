@@ -21,7 +21,7 @@ using System.Linq;
 namespace Sharp.DockManager
 {
 
-    public class DockableTabControl : TabControl, IStyleable, IDockable
+    public partial class DockableTabControl : TabControl, IStyleable, IDockable
     {
         private ScrollViewer scroller;
         Type IStyleable.StyleKey => typeof(TabControl);
@@ -32,20 +32,19 @@ namespace Sharp.DockManager
 
         public DockableTabControl()
         {
-
-            Items = _tabItems;
-            var data = new DockableTabViewModel() { _tabItems = _tabItems };
-            DataContext = data;
-            Dock = Dock.Left;
             InitializeComponent();
+            ItemsSource = _tabItems;
+            //var data = new DockableTabViewModel() { _tabItems = _tabItems };
+            //DataContext = data;
+            Dock = Dock.Left;
         }
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
         {
             base.OnApplyTemplate(e);
-            scroller = this.FindDescendantOfType<ScrollViewer>();
+            scroller = this.FindDescendantOfType<ScrollViewer>(true);
             scroller.AddHandler(PointerWheelChangedEvent, Scroller_PointerWheelChanged, RoutingStrategies.Tunnel | RoutingStrategies.Direct, handledEventsToo: true);
-            Header = scroller.Content as Control;
-            Body = this.FindDescendantOfType<ContentPresenter>();
+            //Header = scroller.Content as Control;
+            Body = this.FindDescendantOfType<ContentPresenter>(true);
         }
 
         private void Scroller_PointerWheelChanged(object? sender, PointerWheelEventArgs e)
@@ -54,10 +53,6 @@ namespace Sharp.DockManager
                 scroller.LineRight();
             else if (e.Delta.Y < 0)
                 scroller.LineLeft();
-        }
-        private void InitializeComponent()
-        {
-            AvaloniaXamlLoader.Load(this);
         }
         public void AddPage(TabItem item)
         {

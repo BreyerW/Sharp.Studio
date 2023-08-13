@@ -7,10 +7,11 @@
              x:Class="Sharp.DockManager.DockableTabControl">
   
 <dt:DockableTabControl.Styles>
-      <Style Selector="TabControl">
+	<Style Selector="TabControl">
         <Setter Property="Template">
           <Setter.Value>
-            <ControlTemplate  TargetType="{x:Type TabControl}">
+            <ControlTemplate TargetType="{x:Type TabControl}">
+				
               <Grid ClipToBounds="true">
                 <Grid.ColumnDefinitions>
                   <ColumnDefinition Width="1*"/>
@@ -21,9 +22,8 @@
                 </Grid.RowDefinitions>
                 <ScrollViewer Name="scroller" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Hidden">
                 <ItemsPresenter Name="PART_ItemsPresenter"
-                                Items="{TemplateBinding Items}"
+                                
                                 ItemsPanel="{TemplateBinding ItemsPanel}"
-                         
                                  ZIndex ="1"
                           Grid.Column="0"
                           Grid.Row="0"
@@ -37,8 +37,9 @@
                      Name="PART_SelectedContentHost"
                                        BorderThickness="2" BorderBrush="Red"
                                       Margin="2,2,2,2"
-                                      Content="{TemplateBinding SelectedContent}"/>
-                <!---->
+                                      Content="{TemplateBinding SelectedContent}"
+                              ContentTemplate="{TemplateBinding SelectedContentTemplate}"/>
+                
 
               </Grid>
               
@@ -46,8 +47,8 @@
           </Setter.Value>
         </Setter>
       </Style>
-  
-  <Style Selector="WrapPanel">
+
+	<Style Selector="WrapPanel">
         <Setter Property="Background" Value="Transparent"/>
       </Style>
       <Style Selector="TabItem">

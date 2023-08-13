@@ -16,7 +16,7 @@ namespace Sharp.DockManager
     ///   Like <see cref="GridSplitter"/>, but for <see cref="DockPanel"/>
     ///   instead of <see cref="Grid"/>.
     /// </summary>
-    public class DockSplitter : Thumb, IStyleable
+    public partial class DockSplitter : Thumb, IStyleable
     {
         static readonly Control targetNullObject = new Control();
         static readonly DockPanel parentNullObject = new DockPanel();
@@ -31,7 +31,7 @@ namespace Sharp.DockManager
         /// <summary> </summary>
         public DockSplitter()
         {
-            AvaloniaXamlLoader.Load(this);
+            InitializeComponent();
         }
 
         DockPanel Panel => Parent as DockPanel ?? parentNullObject;

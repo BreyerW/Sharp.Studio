@@ -4,16 +4,11 @@ using Avalonia.Markup.Xaml;
 
 namespace Sharp.Studio.Views
 {
-    public class AssetsView : UserControl
+    public partial class AssetsView : UserControl
     {
         public AssetsView()
         {
             InitializeComponent();
-        }
-
-        private void InitializeComponent()
-        {
-            AvaloniaXamlLoader.Load(this);
         }
     }
 }
