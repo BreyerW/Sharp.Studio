@@ -117,7 +117,9 @@ namespace Sharp.DockManager
 
          //lastTrigger = draggedItem;
          if (draggedItem is null)
-             draggedItem = new Window();
+         {
+             draggedItem = new Window() { ShowInTaskbar = true };
+         }
          var docker = new DockControl();
          var tab = new DockableTabControl() { Dock = Dock.Left};
          tab.AddPage(selectedTab);
@@ -182,29 +184,29 @@ namespace Sharp.DockManager
                 hit = window.GetVisualAt(pos, c => c is not Border /*AdornerLayer.GetAdornedElement(c as Visual) is null*/) as Control;
                 if (hit is not null)
                 {
-                    var d = hit.FindAncestorOfType<DockableTabControl>();
+                    var d = hit.FindAncestorOfType<DockableTabControl>(true);
                     if (d is not null)
                     {
-                        if (d.Header.IsVisualAncestorOf(hit))
+                        if (d.SelectedHeader.IsVisualAncestorOf(hit))
                         {
-                            var posInHeader = d.Header.PointToClient(e.Point);
+                            var posInHeader = d.SelectedHeader.PointToClient(e.Point);
                             //loop through all header children bounds.width and compare then decide left or right
-                            currentTrigger = (d.Header, Dock.Left);
+                            currentTrigger = (d.SelectedHeader, Dock.Left);
                         }
                         else
                         {
-                            var maybePosInBody = window.TranslatePoint(pos, d.Body);
+                            var maybePosInBody = window.TranslatePoint(pos, d.SelectedBody);
                             if (maybePosInBody.HasValue)
                             {
                                 var posInBody = maybePosInBody.Value;
-                                if (posInBody.X < d.Body.Bounds.Width * 0.25)
-                                    currentTrigger = (d.Body, Dock.Left);
-                                else if (posInBody.X > d.Body.Bounds.Width * 0.75)
-                                    currentTrigger = (d.Body, Dock.Right);
-                                else if (posInBody.X > d.Body.Bounds.Width * 0.25 && posInBody.X < d.Body.Bounds.Width * 0.75 && posInBody.Y < d.Body.Bounds.Height * 0.5)
-                                    currentTrigger = (d.Body, Dock.Top);
+                                if (posInBody.X < d.SelectedBody.Bounds.Width * 0.25)
+                                    currentTrigger = (d.SelectedBody, Dock.Left);
+                                else if (posInBody.X > d.SelectedBody.Bounds.Width * 0.75)
+                                    currentTrigger = (d.SelectedBody, Dock.Right);
+                                else if (posInBody.X > d.SelectedBody.Bounds.Width * 0.25 && posInBody.X < d.SelectedBody.Bounds.Width * 0.75 && posInBody.Y < d.SelectedBody.Bounds.Height * 0.5)
+                                    currentTrigger = (d.SelectedBody, Dock.Top);
                                 else
-                                    currentTrigger = (d.Body, Dock.Bottom);
+                                    currentTrigger = (d.SelectedBody, Dock.Bottom);
                             }
                         }
 
@@ -217,7 +219,7 @@ namespace Sharp.DockManager
                     var children = new Controls(dControl.Children);
                     var index = children.IndexOf(d);
                     var dockUnderMouse = DockPanel.GetDock(dControl.Children[index] as Control);
-                    var stopIndex = copyPlaceDraggedItemIntoDockControl(dockUnderMouse, currentTrigger.area.Value, children, index);
+                    var stopIndex = PlaceDraggedItemIntoDockControl(dockUnderMouse, currentTrigger.area.Value, children, index);
                     var arrangeSize = dControl.Bounds;
                     int totalChildrenCount = children.Count;
                     int nonFillChildrenCount = totalChildrenCount - (dControl.LastChildFill ? 1 : 0);
@@ -309,15 +311,14 @@ namespace Sharp.DockManager
                 draggedItem.Close();
 
                 var sourceDockable = selectedTab.FindAncestorOfType<DockableTabControl>();
-                var logicalParent=selectedTab.FindAncestorOfType<DockableTabControl>();
-                //if (sourceDockable.IsVisualAncestorOf(lastTrigger.control)) break;//continue;
+               //if (sourceDockable.IsVisualAncestorOf(lastTrigger.control)) break;//continue;
                 var sourceDockControl = sourceDockable.FindAncestorOfType<DockControl>();
                 var targetDockable = lastTrigger.control.FindAncestorOfType<DockableTabControl>();
                 //var childrens = new Controls(targetDockControl.Children); 
                 if (lastTrigger.control.Name is "PART_ItemsPresenter")
                 {
                     if (sourceDockable._tabItems.Count is 1)
-                        sourceDockControl.Children.Remove(logicalParent);
+                        sourceDockControl.Children.Remove(sourceDockable);
                     sourceDockable._tabItems.Remove(selectedTab);
                     targetDockable.AddPage(selectedTab);
                 }
@@ -328,20 +329,19 @@ namespace Sharp.DockManager
                     var dockUnderMouse = DockPanel.GetDock(targetDockControl.Children[index] as Control);
                     if (sourceDockable._tabItems.Count is 1)
                     {
-                        sourceDockControl.Children.Remove(logicalParent);
-                        if (index == targetDockControl.Children.Count && lastTrigger.area is Dock.Right or Dock.Bottom)
-                            targetDockControl.Children.Add(logicalParent);
-                        else PlaceDraggedItemIntoDockControl(dockUnderMouse, lastTrigger.area.Value, targetDockControl.Children, index);
+                        sourceDockControl.Children.Remove(sourceDockable);
+                        /*if (index == targetDockControl.Children.Count-1 && lastTrigger.area is Dock.Right or Dock.Bottom)
+                            targetDockControl.Children.Add(sourceDockable);
+                        else*/ PlaceDraggedItemIntoDockControl(dockUnderMouse, lastTrigger.area.Value, targetDockControl.Children, index);
                     }
                     else
                     {
-
                         sourceDockable._tabItems.Remove(selectedTab);
                         var newTab = new DockableTabControl();
                         newTab._tabItems.Add(selectedTab);
-                        if (index == targetDockControl.Children.Count && lastTrigger.area is Dock.Right or Dock.Bottom)
+                        /*if (index == targetDockControl.Children.Count-1 && lastTrigger.area is Dock.Right or Dock.Bottom)
                             targetDockControl.Children.Add(newTab);
-                        else PlaceDraggedItemIntoDockControl(dockUnderMouse, lastTrigger.area.Value, targetDockControl.Children, index);
+                        else*/ PlaceDraggedItemIntoDockControl(dockUnderMouse, lastTrigger.area.Value, targetDockControl.Children, index);
                     }
 
                 }
@@ -363,10 +363,12 @@ namespace Sharp.DockManager
                 _ => (index, areaUnderMouse),
             };
             var parent=selectedTab.FindAncestorOfType<DockableTabControl>();
-           // grandparent.
+            parent._tabItems.Remove(selectedTab);
+            selectedTab = new TabItem() { Header = selectedTab.Header, Content = selectedTab.Content };
+            parent._tabItems.Add(selectedTab);
             targetChildrens.Insert(finalIndex, parent);
             ((IDockable)parent).Dock = dock;
-            //DockPanel.SetDock(parent, dock);
+            DockPanel.SetDock(parent, dock);
             Debug.WriteLine("docks: " + dockUnderMouse + " " + areaUnderMouse + " " + finalIndex + " " + targetChildrens.Count + " " + index);
             return finalIndex;
         }
@@ -380,7 +382,7 @@ namespace Sharp.DockManager
                 _ => (index, areaUnderMouse),
             };
             var parent = selectedTab.FindAncestorOfType<DockableTabControl>();
-            // grandparent.
+            
             targetChildrens.Insert(finalIndex, parent);
             ((IDockable)parent).Dock = dock;
             DockPanel.SetDock(parent, dock);

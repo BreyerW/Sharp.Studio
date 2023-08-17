@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Sharp.DockManager.ViewModels
 {
-    class DockableTabViewModel : ViewModelBase
+    public class DockableTabViewModel : ViewModelBase
     {
         public ObservableCollection<TabItem> _tabItems { get; set; }
     }

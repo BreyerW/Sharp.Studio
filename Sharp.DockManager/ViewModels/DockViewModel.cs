@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Sharp.DockManager.ViewModels
 {
-    class DockViewModel : ViewModelBase
+    public class DockViewModel : ViewModelBase
     {
         public ObservableCollection<IDockable> docked = new();
         public RowDefinitions rows = new RowDefinitions();

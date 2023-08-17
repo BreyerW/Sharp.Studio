@@ -6,8 +6,8 @@ namespace Sharp.DockManager
 {
     public interface IDockable
     {
-        Control Header { set; get; }
-        Control Body { set; get; }
+        Control SelectedHeader { get; }
+        Control SelectedBody { get; }
         Dock Dock { set; get; }
     }
 }
