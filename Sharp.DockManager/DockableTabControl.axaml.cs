@@ -25,7 +25,7 @@ namespace Sharp.DockManager
 
     public partial class DockableTabControl : TabControl, IStyleable, IDockable
     {
-        private ScrollViewer scroller;
+        internal ScrollViewer scroller;
         Type IStyleable.StyleKey => typeof(DockableTabControl);
         public ObservableCollection<TabItem> _tabItems { get; set; } = new();
         public Dock Dock { get; set; }

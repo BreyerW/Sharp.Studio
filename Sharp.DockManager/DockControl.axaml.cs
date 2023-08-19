@@ -65,28 +65,31 @@ namespace Sharp.DockManager
 
         static DockControl()
         {
-            PointerPressedEvent.AddClassHandler<Control>((s, e) =>
+            PointerPressedEvent.AddClassHandler<TabItem>((s, e) =>
             {
                 lastMousePos = e.GetPosition(s);
-            });
+                mousePosOffset = s.PointToScreen(e.GetPosition(s)) - s.GetVisualParent().PointToScreen(s.Bounds.Position);
+                selectedTab = s;
+            },handledEventsToo: true);
             PointerMovedEvent.AddClassHandler<Control>((s, e) =>
  {
 
      var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
      if (draggedItem is null && e.GetCurrentPoint(null).Properties.IsLeftButtonPressed)
      {
-
-         selectedTab = s.FindAncestorOfType<TabItem>(true);
-         if (selectedTab is null) return;
-
-         Point mousePos = e.GetPosition(s);
-         if (Math.Abs(mousePos.X - lastMousePos.X) < accidentalMovePrevention && Math.Abs(mousePos.Y - lastMousePos.Y) < accidentalMovePrevention) return;
-
-         var screenPos = s.PointToScreen(mousePos);
+         var scroller = selectedTab.FindAncestorOfType<ScrollViewer>(true);
+         if (scroller is null) return;
+         Point scrollerMousePos = e.GetPosition(scroller);
+         
+         if (scroller.Bounds.Contains(scrollerMousePos)) return;
+         
+         Point mousePos = e.GetPosition(selectedTab);
+         var screenPos = selectedTab.PointToScreen(mousePos);
          var dockable = selectedTab.FindAncestorOfType<IDockable>(true) as DockableTabControl;
          var panel = dockable.FindAncestorOfType<DockControl>(true);
          var attachedToWin = panel.FindAncestorOfType<Window>();
-         var relativePos = s.GetVisualParent().PointToScreen(s.Bounds.Position);
+         var Width = selectedTab.DesiredSize.Width;
+         var Height = selectedTab.DesiredSize.Height;
          if (dockable._tabItems.Count is 1)
          {
              if (panel.Children.Count is 1)
@@ -118,7 +121,7 @@ namespace Sharp.DockManager
          //lastTrigger = draggedItem;
          if (draggedItem is null)
          {
-             draggedItem = new Window() { ShowInTaskbar = true };
+             draggedItem = new Window();
          }
          var docker = new DockControl();
          var tab = new DockableTabControl() { Dock = Dock.Left};
@@ -126,19 +129,20 @@ namespace Sharp.DockManager
          docker.StartWithDocks(new[] { tab });
 
          draggedItem.Content = docker;
-         mousePosOffset = screenPos - relativePos.WithY(relativePos.Y);
-         draggedItem.Position = new PixelPoint(relativePos.X, relativePos.Y - 33);
+         
+         draggedItem.Position = screenPos-new PixelPoint(0,(int)(draggedItem.FrameSize.GetValueOrDefault().Height-draggedItem.ClientSize.Height))-mousePosOffset;
          draggedItem.SizeToContent = SizeToContent.WidthAndHeight;
          draggedItem.SystemDecorations = SystemDecorations.BorderOnly;
-         //draggedItem.Width = s.Bounds.Width;
-         //draggedItem.Height = s.Bounds.Height;
-         draggedItem.ShowInTaskbar = false;
+         draggedItem.ExtendClientAreaToDecorationsHint = true;
+         //draggedItem.Width = Width;
+         //draggedItem.Height = Height;
+         draggedItem.ShowInTaskbar = true;
          draggedItem.Show();
          draggedItem.PositionChanged += DraggedItem_PositionChanged;
-         draggedItem.BeginMoveDrag(new PointerPressedEventArgs(draggedItem, e.Pointer, draggedItem, default, e.Timestamp, e.GetCurrentPoint(s).Properties, e.KeyModifiers));
+         draggedItem.BeginMoveDrag(new PointerPressedEventArgs(draggedItem, e.Pointer, draggedItem, default, e.Timestamp, e.GetCurrentPoint(null).Properties, e.KeyModifiers));
 
      }
- });
+ },handledEventsToo: true);
         }
 
         public DockControl()

@@ -26,7 +26,7 @@
 											<ColumnDefinition Width="*"/>
 											<ColumnDefinition Width="Auto"/>
 										</Grid.ColumnDefinitions>
-										<ContentPresenter FontSize="25" Margin="1" Content="{TemplateBinding Header}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+										<ContentPresenter FontSize="20" Margin="1" Content="{TemplateBinding Header}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
 										<Button Grid.Column="1" Content="x" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent"/>
 									</Grid>
 
@@ -42,14 +42,12 @@
 			<Setter Property="Template">
 				<ControlTemplate>
 						<DockPanel Name="panel">
-							
-								
 							<Grid DockPanel.Dock="{TemplateBinding TabStripPlacement}">
 								<Grid.ColumnDefinitions>
 									<ColumnDefinition Width="*"/>
 									<ColumnDefinition Width="Auto"/>
 								</Grid.ColumnDefinitions>
-								<ScrollViewer Name="scroller" HorizontalAlignment="Left"
+								<ScrollViewer Name="scroller" HorizontalAlignment="Stretch"
 										  HorizontalScrollBarVisibility="Hidden">
 									
 								<ItemsPresenter Name="PART_ItemsPresenter"
@@ -59,19 +57,22 @@
 								</ItemsPresenter>
 								
 							</ScrollViewer>
-								
 								<Button HorizontalAlignment="Right" Background="Transparent" Content="+" Grid.Column="1" />
 							</Grid>
-							<ContentPresenter Name="PART_SelectedContentHost"
+							<Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="Auto,*,Auto">
+							<ContentPresenter
+								Grid.Column="1" Grid.Row="1"
+								Name="PART_SelectedContentHost"
 											  Margin="{TemplateBinding Padding}"
-											  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-											  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+											  HorizontalContentAlignment="Stretch"
+											  VerticalContentAlignment="Stretch"
 											  Content="{TemplateBinding SelectedContent}"
 											  ContentTemplate="{TemplateBinding SelectedContentTemplate}"
 											  Background="Transparent"
 											  BorderThickness="2"
 											  BorderBrush="Red"
 											  />
+							</Grid>
 						</DockPanel>
 				</ControlTemplate>
 			</Setter>
