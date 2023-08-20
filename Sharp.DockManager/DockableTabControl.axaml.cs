@@ -31,9 +31,6 @@ namespace Sharp.DockManager
         public Dock Dock { get; set; }
         public Control SelectedHeader { get => SelectedItem as Control; }
         public Control SelectedBody { get => SelectedContent as Control; }
-
-        private Control partSelectedControlHost;
-        private Control grid;
         public DockableTabControl()
         {
             InitializeComponent();

@@ -19,6 +19,8 @@ using Avalonia.Platform;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using Avalonia.LogicalTree;
+using Sharp.DockManager.Behaviours;
+using SharpHook;
 
 namespace Sharp.DockManager
 {
@@ -46,10 +48,11 @@ namespace Sharp.DockManager
         public static double accidentalMovePrevention = 7;
         public static bool preventEmptyDockControlInMainWindow = false;
         public ObservableCollection<IDockable> docked = new();
-        /// <summary>
-        /// Gets the z-order for one or more windows atomically with respect to each other. In Windows, smaller z-order is higher. If the window is not top level, the z order is returned as -1. 
-        /// </summary>
-        private static void UpdateZOrder()
+        private static readonly TaskPoolGlobalHook hook=new();
+		/// <summary>
+		/// Gets the z-order for one or more windows atomically with respect to each other. In Windows, smaller z-order is higher. If the window is not top level, the z order is returned as -1. 
+		/// </summary>
+		private static void UpdateZOrder()
         {
             var index = 0;
             test.EnumWindows((wnd, param) =>
@@ -65,25 +68,44 @@ namespace Sharp.DockManager
 
         static DockControl()
         {
-            PointerPressedEvent.AddClassHandler<TabItem>((s, e) =>
+			hook.MouseDragged += Hook_MouseDragged;
+			hook.MouseReleased += Hook_MouseReleased;
+            hook.RunAsync();
+			TopLevel.PointerReleasedEvent.AddClassHandler<Interactive>((s, e) =>
+			{
+                Debug.WriteLine("released");
+			}, handledEventsToo: true, routes: RoutingStrategies.Direct | RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+            DragDrop.DropEvent.AddClassHandler<Interactive>((s, e) =>
+            {
+            
+                Debug.WriteLine("dropped");
+            }, handledEventsToo: true, routes: RoutingStrategies.Direct | RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+			Window.PointerPressedEvent.AddClassHandler<TabItem>((s, e) =>
             {
                 lastMousePos = e.GetPosition(s);
                 mousePosOffset = s.PointToScreen(e.GetPosition(s)) - s.GetVisualParent().PointToScreen(s.Bounds.Position);
                 selectedTab = s;
-            },handledEventsToo: true);
-            PointerMovedEvent.AddClassHandler<Control>((s, e) =>
+			},handledEventsToo: true);
+			Window.PointerMovedEvent.AddClassHandler<Control>((s, e) =>
  {
-
-     var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
+	 var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
      if (draggedItem is null && e.GetCurrentPoint(null).Properties.IsLeftButtonPressed)
      {
          var scroller = selectedTab.FindAncestorOfType<ScrollViewer>(true);
          if (scroller is null) return;
          Point scrollerMousePos = e.GetPosition(scroller);
-         
-         if (scroller.Bounds.Contains(scrollerMousePos)) return;
-         
-         Point mousePos = e.GetPosition(selectedTab);
+
+         if (scroller.Bounds.Contains(scrollerMousePos))
+         {
+			 selectedTab.ZIndex = int.MaxValue;
+             //var transform=(selectedTab.RenderTransform??=new TranslateTransform()) as TranslateTransform;
+             //transform.X = Math.Clamp(scrollerMousePos.X - lastMousePos.X,0,scroller.Bounds.Width-selectedTab.Bounds.Width);
+             return;
+         }
+         else
+             DragDropBehaviours.SetIsSet(selectedTab, false);
+
+		  Point mousePos = e.GetPosition(selectedTab);
          var screenPos = selectedTab.PointToScreen(mousePos);
          var dockable = selectedTab.FindAncestorOfType<IDockable>(true) as DockableTabControl;
          var panel = dockable.FindAncestorOfType<DockControl>(true);
@@ -139,13 +161,29 @@ namespace Sharp.DockManager
          draggedItem.ShowInTaskbar = true;
          draggedItem.Show();
          draggedItem.PositionChanged += DraggedItem_PositionChanged;
-         draggedItem.BeginMoveDrag(new PointerPressedEventArgs(draggedItem, e.Pointer, draggedItem, default, e.Timestamp, e.GetCurrentPoint(null).Properties, e.KeyModifiers));
+		 draggedItem.PointerReleased += DraggedItem_PointerReleased;
+		draggedItem.BeginMoveDrag(new PointerPressedEventArgs(draggedItem, e.Pointer, draggedItem, default, e.Timestamp, e.GetCurrentPoint(null).Properties, e.KeyModifiers));
 
      }
  },handledEventsToo: true);
         }
 
-        public DockControl()
+		private static void Hook_MouseReleased(object? sender, MouseHookEventArgs e)
+		{
+            //Debug.WriteLine("release");
+		}
+
+		private static void Hook_MouseDragged(object? sender, MouseHookEventArgs e)
+		{
+            //Debug.WriteLine("drag");
+		}
+
+		private static void DraggedItem_PointerReleased(object? sender, PointerReleasedEventArgs e)
+		{
+			
+		}
+
+		public DockControl()
         {
             InitializeComponent();
             LastChildFill = true;
@@ -367,12 +405,20 @@ namespace Sharp.DockManager
                 _ => (index, areaUnderMouse),
             };
             var parent=selectedTab.FindAncestorOfType<DockableTabControl>();
-            parent._tabItems.Remove(selectedTab);
-            selectedTab = new TabItem() { Header = selectedTab.Header, Content = selectedTab.Content };
-            parent._tabItems.Add(selectedTab);
+
+            if (parent is null)
+            {
+                parent = new DockableTabControl();
+                parent._tabItems.Add(selectedTab);
+            }
+			//if(parent._tabItems.Count>0)
+			//    parent._tabItems.Remove(selectedTab);
+            //selectedTab = new TabItem() { Header = selectedTab.Header, Content = selectedTab.Content };
+            //parent._tabItems.Add(selectedTab);
             targetChildrens.Insert(finalIndex, parent);
             ((IDockable)parent).Dock = dock;
             DockPanel.SetDock(parent, dock);
+            DragDropBehaviours.SetIsSet(selectedTab,true);
             Debug.WriteLine("docks: " + dockUnderMouse + " " + areaUnderMouse + " " + finalIndex + " " + targetChildrens.Count + " " + index);
             return finalIndex;
         }
@@ -393,68 +439,7 @@ namespace Sharp.DockManager
             Debug.WriteLine("docks: " + dockUnderMouse + " " + areaUnderMouse + " " + finalIndex + " " + targetChildrens.Count + " " + index);
             return finalIndex;
         }
-        /// <summary>
-        /// DockPanel computes a position and final size for each of its children based upon their
-        /// <see cref="Dock" /> enum and sizing properties.
-        /// </summary>
-        /// <param name="arrangeSize">Size that DockPanel will assume to position children.</param>
-        protected override Size ArrangeOverride(Size arrangeSize)
-        {
-            var children = Children;
-            int totalChildrenCount = children.Count;
-            int nonFillChildrenCount = totalChildrenCount - (LastChildFill ? 1 : 0);
-
-            double accumulatedLeft = 0;
-            double accumulatedTop = 0;
-            double accumulatedRight = 0;
-            double accumulatedBottom = 0;
-
-            for (int i = 0; i < totalChildrenCount; ++i)
-            {
-                var child = children[i];
-                if (child == null)
-                { continue; }
-
-                Size childDesiredSize = child.DesiredSize;
-                Rect rcChild = new Rect(
-                    accumulatedLeft,
-                    accumulatedTop,
-                    Math.Max(0.0, arrangeSize.Width - (accumulatedLeft + accumulatedRight)),
-                    Math.Max(0.0, arrangeSize.Height - (accumulatedTop + accumulatedBottom)));
-
-                if (i < nonFillChildrenCount)
-                {
-                    switch (DockPanel.GetDock((Control)child))
-                    {
-                        case Dock.Left:
-                            accumulatedLeft += childDesiredSize.Width;
-                            rcChild = rcChild.WithWidth(childDesiredSize.Width);
-                            break;
-
-                        case Dock.Right:
-                            accumulatedRight += childDesiredSize.Width;
-                            rcChild = rcChild.WithX(Math.Max(0.0, arrangeSize.Width - accumulatedRight));
-                            rcChild = rcChild.WithWidth(childDesiredSize.Width);
-                            break;
-
-                        case Dock.Top:
-                            accumulatedTop += childDesiredSize.Height;
-                            rcChild = rcChild.WithHeight(childDesiredSize.Height);
-                            break;
-
-                        case Dock.Bottom:
-                            accumulatedBottom += childDesiredSize.Height;
-                            rcChild = rcChild.WithY(Math.Max(0.0, arrangeSize.Height - accumulatedBottom));
-                            rcChild = rcChild.WithHeight(childDesiredSize.Height);
-                            break;
-                    }
-                }
-
-                child.Arrange(rcChild);
-            }
-
-            return arrangeSize;
-        }
+        
         public void StartWithDocks<T>(T[] docks, params float[] proportions) where T : Control, IDockable
         {
 

@@ -4,6 +4,11 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Sharp.Studio.ViewModels;
 using Sharp.Studio.Views;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.VisualTree;
+using System;
+using System.Linq;
 
 namespace Sharp.Studio
 {
@@ -26,9 +31,10 @@ namespace Sharp.Studio
 
             base.OnFrameworkInitializationCompleted();
         }
-    }
-    //TODO: move to grid so that this becomes non issue
-    public sealed class NoSizeDecorator
+	}
+	
+	//TODO: move tabitem to grid so that unlimited width becomes non issue
+	public sealed class NoSizeDecorator
             : Decorator
     {
         /// <summary>

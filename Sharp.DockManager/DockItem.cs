@@ -1,19 +1,9 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Sharp.DockManager.ViewModels
+namespace Sharp.DockManager
 {
-    public class DockableTabViewModel : ViewModelBase
-    {
-        public ObservableCollection<TabItem> _tabItems { get; set; }
-    }
-    /*public struct DockItem
+    public class DockItem : TabItem
     {
         /// <summary>
         /// Sets whether the width will be overridden.
@@ -31,5 +21,5 @@ namespace Sharp.DockManager.ViewModels
         }
         public Control Header { get; set; }
         public Control Content { get; set; }
-    }*/
+    }
 }
