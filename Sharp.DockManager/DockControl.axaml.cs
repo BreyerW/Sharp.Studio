@@ -21,6 +21,7 @@ using System.Runtime.CompilerServices;
 using Avalonia.LogicalTree;
 using Sharp.DockManager.Behaviours;
 using SharpHook;
+using Avalonia.Threading;
 
 namespace Sharp.DockManager
 {
@@ -34,8 +35,9 @@ namespace Sharp.DockManager
     }
     public partial class DockControl : DockPanel
     {
-        
-        private static Window draggedItem = null;
+
+		private static readonly TaskPoolGlobalHook hook = new();
+		private static Window draggedItem = null;
         private static (Control control, Dock? area) lastTrigger = default;
         private static TabItem selectedTab = null;
         private static Point lastMousePos;
@@ -48,7 +50,7 @@ namespace Sharp.DockManager
         public static double accidentalMovePrevention = 7;
         public static bool preventEmptyDockControlInMainWindow = false;
         public ObservableCollection<IDockable> docked = new();
-        private static readonly TaskPoolGlobalHook hook=new();
+        
 		/// <summary>
 		/// Gets the z-order for one or more windows atomically with respect to each other. In Windows, smaller z-order is higher. If the window is not top level, the z order is returned as -1. 
 		/// </summary>
@@ -68,10 +70,8 @@ namespace Sharp.DockManager
 
         static DockControl()
         {
-			hook.MouseDragged += Hook_MouseDragged;
-			hook.MouseReleased += Hook_MouseReleased;
-            hook.RunAsync();
-			TopLevel.PointerReleasedEvent.AddClassHandler<Interactive>((s, e) =>
+
+			InputElement.PointerReleasedEvent.AddClassHandler<Interactive>((s, e) =>
 			{
                 Debug.WriteLine("released");
 			}, handledEventsToo: true, routes: RoutingStrategies.Direct | RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
@@ -80,16 +80,18 @@ namespace Sharp.DockManager
             
                 Debug.WriteLine("dropped");
             }, handledEventsToo: true, routes: RoutingStrategies.Direct | RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
-			Window.PointerPressedEvent.AddClassHandler<TabItem>((s, e) =>
+			InputElement.PointerPressedEvent.AddClassHandler<TabItem>((s, e) =>
             {
                 lastMousePos = e.GetPosition(s);
                 mousePosOffset = s.PointToScreen(e.GetPosition(s)) - s.GetVisualParent().PointToScreen(s.Bounds.Position);
                 selectedTab = s;
-			},handledEventsToo: true);
-			Window.PointerMovedEvent.AddClassHandler<Control>((s, e) =>
+				var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
+				e.Pointer.Capture(lifetime.MainWindow);
+			},handledEventsToo: true,routes: RoutingStrategies.Direct| RoutingStrategies.Tunnel| RoutingStrategies.Bubble);
+			InputElement.PointerMovedEvent.AddClassHandler<Control>((s, e) =>
  {
 	 var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
-     if (draggedItem is null && e.GetCurrentPoint(null).Properties.IsLeftButtonPressed)
+	 if (draggedItem is null && e.GetCurrentPoint(null).Properties.IsLeftButtonPressed)
      {
          var scroller = selectedTab.FindAncestorOfType<ScrollViewer>(true);
          if (scroller is null) return;
@@ -98,12 +100,10 @@ namespace Sharp.DockManager
          if (scroller.Bounds.Contains(scrollerMousePos))
          {
 			 selectedTab.ZIndex = int.MaxValue;
-             //var transform=(selectedTab.RenderTransform??=new TranslateTransform()) as TranslateTransform;
-             //transform.X = Math.Clamp(scrollerMousePos.X - lastMousePos.X,0,scroller.Bounds.Width-selectedTab.Bounds.Width);
              return;
          }
-         else
-             DragDropBehaviours.SetIsSet(selectedTab, false);
+         //else
+             //DragDropBehaviours.SetIsSet(selectedTab, false);
 
 		  Point mousePos = e.GetPosition(selectedTab);
          var screenPos = selectedTab.PointToScreen(mousePos);
@@ -144,45 +144,80 @@ namespace Sharp.DockManager
          if (draggedItem is null)
          {
              draggedItem = new Window();
-         }
-         var docker = new DockControl();
-         var tab = new DockableTabControl() { Dock = Dock.Left};
-         tab.AddPage(selectedTab);
-         docker.StartWithDocks(new[] { tab });
 
-         draggedItem.Content = docker;
-         
-         draggedItem.Position = screenPos-new PixelPoint(0,(int)(draggedItem.FrameSize.GetValueOrDefault().Height-draggedItem.ClientSize.Height))-mousePosOffset;
-         draggedItem.SizeToContent = SizeToContent.WidthAndHeight;
-         draggedItem.SystemDecorations = SystemDecorations.BorderOnly;
-         draggedItem.ExtendClientAreaToDecorationsHint = true;
-         //draggedItem.Width = Width;
-         //draggedItem.Height = Height;
-         draggedItem.ShowInTaskbar = true;
-         draggedItem.Show();
-         draggedItem.PositionChanged += DraggedItem_PositionChanged;
-		 draggedItem.PointerReleased += DraggedItem_PointerReleased;
-		draggedItem.BeginMoveDrag(new PointerPressedEventArgs(draggedItem, e.Pointer, draggedItem, default, e.Timestamp, e.GetCurrentPoint(null).Properties, e.KeyModifiers));
+             var docker = new DockControl();
+             var tab = new DockableTabControl() { Dock = Dock.Left };
+             tab.AddPage(selectedTab);
+             docker.StartWithDocks(new[] { tab });
 
-     }
- },handledEventsToo: true);
+             draggedItem.Content = docker;
+
+             draggedItem.Position = screenPos - new PixelPoint(0, (int)(draggedItem.FrameSize.GetValueOrDefault().Height - draggedItem.ClientSize.Height)) - mousePosOffset;
+             draggedItem.SizeToContent = SizeToContent.WidthAndHeight;
+             draggedItem.SystemDecorations = SystemDecorations.BorderOnly;
+             draggedItem.ExtendClientAreaToDecorationsHint = true;
+             //draggedItem.Width = Width;
+             //draggedItem.Height = Height;
+             draggedItem.ShowInTaskbar = true;
+             //draggedItem.ShowDialog(lifetime.MainWindow);
+			 draggedItem.Show();
+			 //draggedItem.PositionChanged += DraggedItem_PositionChanged;
+             //draggedItem.PointerReleased += DraggedItem_PointerReleased;
+			 draggedItem.PointerMoved += DraggedItem_PointerMoved;
+             //e.Pointer.Capture(draggedItem);
+			 //draggedItem.BeginMoveDrag(new PointerPressedEventArgs(draggedItem, e.Pointer, draggedItem, default, e.Timestamp, e.GetCurrentPoint(null).Properties, e.KeyModifiers));
+		 }
+		 
+	 }if (draggedItem is not null)
+		 {
+			 Point mousePos = e.GetPosition(draggedItem);
+			 var screenPos = draggedItem.PointToScreen(mousePos);
+			 var pos = draggedItem.Position;
+			 Debug.WriteLine("drag");
+			 draggedItem.Position = screenPos;
+
+		 }
+ },handledEventsToo: true,routes: RoutingStrategies.Direct| RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
         }
+
+		private static void DraggedItem_PointerMoved(object? sender, PointerEventArgs e)
+		{
+			if (draggedItem is not null)
+			{
+				Point mousePos = e.GetPosition(draggedItem);
+				var screenPos = draggedItem.PointToScreen(mousePos);
+				Debug.WriteLine("drag");
+				draggedItem.Position = screenPos;
+
+			}
+		}
 
 		private static void Hook_MouseReleased(object? sender, MouseHookEventArgs e)
 		{
-            //Debug.WriteLine("release");
+            Debug.WriteLine("release");
 		}
 
 		private static void Hook_MouseDragged(object? sender, MouseHookEventArgs e)
 		{
-            //Debug.WriteLine("drag");
+            Debug.WriteLine("drag");
 		}
 
 		private static void DraggedItem_PointerReleased(object? sender, PointerReleasedEventArgs e)
 		{
-			
+			Debug.WriteLine("release");
 		}
 
+
+		/*private static void Hook_MouseReleased(object? sender, MouseHookEventArgs e)
+		{
+			Dispatcher.UIThread.Invoke(() => {
+				var control = draggingPointer.Source as Control;
+				var parent = control.GetVisualParent();
+				Control_PointerReleased(draggingPointer.Source,
+				new PointerReleasedEventArgs(draggingPointer.Source, draggingPointer.Pointer, parent, parent.Bounds.Position, e.RawEvent.Time, draggingPointer.GetCurrentPoint(control).Properties, draggingPointer.KeyModifiers, MouseButton.Left));
+			});
+			//hook.Dispose();
+		}*/
 		public DockControl()
         {
             InitializeComponent();
@@ -341,7 +376,7 @@ namespace Sharp.DockManager
         protected override void OnPointerMoved(PointerEventArgs e)
         {
             base.OnPointerMoved(e);
-            if (draggedItem is null) return;
+			if (draggedItem is null) return;
 
             draggedItem.PositionChanged -= DraggedItem_PositionChanged;
             if (lastTrigger.control is null)
