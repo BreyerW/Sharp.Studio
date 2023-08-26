@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -16,12 +17,16 @@ namespace Sharp.DockManager.Behaviours
 	//TODO: change to DragDropBehaviour and add Drop, DragLeave, DragEnter events, leave/enter based on parent Bounds property
 	//resignate from global hooks here instead implement dragleave asap andd here enable hooks while disabling this behaviour
 	//Also consider putting this on parent then drag bounds not as necessary
-	public class DragDropBehaviours
+	public class DraggableTabsBehaviours
 	{
 
 		private static readonly TranslateTransform cachedTransform=new TranslateTransform();
-
+		private static TabItem draggedItem = null;
+		private static TabControl startingParent = null;
+		private static Dock stripPlacement;
 		private static PointerPressedEventArgs draggingPointer;
+
+
 
 		#region IsSet Attached Avalonia Property
 		public static bool GetIsSet(Control obj)
@@ -35,7 +40,7 @@ namespace Sharp.DockManager.Behaviours
 		}
 
 		public static readonly AttachedProperty<bool> IsSetProperty =
-			AvaloniaProperty.RegisterAttached<DragDropBehaviours, Control, bool>
+			AvaloniaProperty.RegisterAttached<DraggableTabsBehaviours, Control, bool>
 			(
 				"IsSet"
 			);
@@ -52,7 +57,7 @@ namespace Sharp.DockManager.Behaviours
 		}
 
 		public static readonly AttachedProperty<bool> BlockXAxisProperty =
-			AvaloniaProperty.RegisterAttached<DragDropBehaviours, Control, bool>
+			AvaloniaProperty.RegisterAttached<DraggableTabsBehaviours, Control, bool>
 			(
 				"BlockXAxis"
 			);
@@ -69,7 +74,7 @@ namespace Sharp.DockManager.Behaviours
 		}
 
 		public static readonly AttachedProperty<bool> BlockYAxisProperty =
-			AvaloniaProperty.RegisterAttached<DragDropBehaviours, Control, bool>
+			AvaloniaProperty.RegisterAttached<DraggableTabsBehaviours, Control, bool>
 			(
 				"BlockYAxis"
 			);
@@ -84,33 +89,43 @@ namespace Sharp.DockManager.Behaviours
 		{
 			obj.SetValue(DragBoundsProperty, value);
 		}
-
+		//TODO: change name to DragBoundsOverride
 		public static readonly AttachedProperty<Rect> DragBoundsProperty =
-			AvaloniaProperty.RegisterAttached<DragDropBehaviours, Control, Rect>
+			AvaloniaProperty.RegisterAttached<DraggableTabsBehaviours, Control, Rect>
 			(
 				"DragBounds"
 			);
 		#endregion DragBounds Attached Avalonia Property
-		#region OnDragLeave Attached Avalonia Property
+		#region OnDragDrop Attached Avalonia Property
+		public static Action<object, PointerReleasedEventArgs>? GetOnDrop(Control obj)
+		{
+			return obj.GetValue(OnDropProperty);
+		}
 
-		public static readonly RoutedEvent<RoutedEventArgs> OnDragLeaveEvent =
-			RoutedEvent.Register<DragDropBehaviours, RoutedEventArgs>("OnDragLeave", RoutingStrategies.Bubble);
-		#endregion OnDragLeave Attached Avalonia Property
+		public static void SetOnDrop(Control obj, Action<object, PointerReleasedEventArgs>? value)
+		{
+			obj.SetValue(OnDropProperty, value);
+		}
+		public static readonly AttachedProperty<Action<object, PointerReleasedEventArgs>?> OnDropProperty = AvaloniaProperty.RegisterAttached<DraggableTabsBehaviours, TabControl, Action<object,PointerReleasedEventArgs>?>
+			(
+				"OnDrop"
+			);
+		#endregion OnDragDrop Attached Avalonia Property
 		private static Point GetShift(Control control)
 		{
 			return new Point(cachedTransform.X, cachedTransform.Y);
 		}
 
-		private static void SetShift(Control control, Point shift)
+		private static void SetShift(Control sender, Control control, Point shift)
 		{
 			cachedTransform.X = shift.X;
 			cachedTransform.Y = shift.Y;
-			var dragBounds = GetDragBounds(control);
+			var dragBounds = GetDragBounds(sender);
 			//TODO: add Inflate/Bounds (or Padding)
 			//dragBounds.Inflate();
-			if (!GetBlockXAxis(control) && dragBounds.Width > 0)
+			if (dragBounds.Width > 0)
 					cachedTransform.X=Math.Clamp(shift.X, 0, dragBounds.Width - control.Bounds.Width);
-				if (!GetBlockYAxis(control) && dragBounds.Height > 0)
+				if (dragBounds.Height > 0)
 					cachedTransform.Y=Math.Clamp(shift.Y, 0, dragBounds.Height - control.Bounds.Height);
 
 		}
@@ -127,7 +142,7 @@ namespace Sharp.DockManager.Behaviours
 		}
 
 		private static readonly AttachedProperty<Point> InitialPointerLocationProperty =
-			AvaloniaProperty.RegisterAttached<DragDropBehaviours, Control, Point>
+			AvaloniaProperty.RegisterAttached<DraggableTabsBehaviours, Control, Point>
 			(
 				"InitialPointerLocation"
 			);
@@ -146,31 +161,56 @@ namespace Sharp.DockManager.Behaviours
 		}
 
 		public static readonly AttachedProperty<Point> InitialDragShiftProperty =
-			AvaloniaProperty.RegisterAttached<DragDropBehaviours, Control, Point>
+			AvaloniaProperty.RegisterAttached<DraggableTabsBehaviours, Control, Point>
 			(
 				"InitialDragShift"
 			);
 		#endregion InitialDragShift Attached Avalonia Property
 
-		static DragDropBehaviours()
+		static DraggableTabsBehaviours()
 		{
 			IsSetProperty.Changed.AddClassHandler<Control, bool>(OnIsSetChanged);
+			InputElement.PointerPressedEvent.AddClassHandler<TabItem>((s,e)=>{
+				var parent = s.FindAncestorOfType<TabControl>();
+				//while (parent is { Name : not "PART_ItemsPresenter" })
+				//	parent=parent.FindAncestorOfType<ContentPresenter>();
+				if (GetIsSet(parent))
+				{
+					startingParent = parent;
+					stripPlacement = parent.TabStripPlacement;
+					s.ZIndex = int.MaxValue;
+					draggedItem = s;
+					Control_PointerPressed(parent, e);
+				}
+			},handledEventsToo:true);
+			InputElement.PointerMovedEvent.AddClassHandler<Control>((s, e) => {
+				if (draggedItem is not null && GetIsSet(startingParent))
+				{
+					Control_PointerMoved(draggedItem, e);
+				}
+			}, handledEventsToo: true);
+			InputElement.PointerReleasedEvent.AddClassHandler<Control>((s, e) => {
+				if (draggedItem is not null)
+				{
+					Control_PointerReleased(draggedItem, e);
+				}
+			}, handledEventsToo: true);
 		}
 
 		// set the PointerPressed handler when 
 		private static void OnIsSetChanged(Control s, AvaloniaPropertyChangedEventArgs<bool> args)
 		{
 			Control control = (Control)args.Sender;
-
+			
 			if (args.NewValue.Value == true)
 			{
 				// connect the pointer pressed event handler
-				control.PointerPressed += Control_PointerPressed;
+				//control.PointerPressed += Control_PointerPressed;
 			}
 			else
 			{
 				// disconnect the pointer pressed event handler
-				control.PointerPressed -= Control_PointerPressed;
+				//control.PointerPressed -= Control_PointerPressed;
 			}
 		}
 
@@ -187,13 +227,13 @@ namespace Sharp.DockManager.Behaviours
 		// start drag by pressing the point on draggable control
 		private static void Control_PointerPressed(object? sender, PointerPressedEventArgs e)
 		{
-			Control control = (Control)sender!;
+			Control control = draggedItem!;
 			control.RenderTransform = cachedTransform;
 			// capture the pointer on the control
 			// meaning - the mouse pointer will be producing the
 			// pointer events on the control
 			// even if it is not directly above the control
-			e.Pointer.Capture(control);
+			e.Pointer.Capture(sender as Control);
 
 			draggingPointer = e;
 			// calculate the drag-initial pointer position within the window
@@ -210,17 +250,17 @@ namespace Sharp.DockManager.Behaviours
 			// add handler to do the shift and 
 			// other processing on PointerMoved
 			// and PointerReleased events. 
-			control.PointerMoved += Control_PointerMoved;
-			control.PointerReleased += Control_PointerReleased;
+			//control.PointerMoved += Control_PointerMoved;
+			//control.PointerReleased += Control_PointerReleased;
 			
 		}
 
 		// update the shift when pointer is moved
 		private static void Control_PointerMoved(object? sender, PointerEventArgs e)
 		{
-			Control control = (Control)sender!;
+			Control control = draggedItem;
 			// Shift control to the current position
-			ShiftControl(control, e);
+			ShiftControl(sender as Control, control, e);
 
 		}
 
@@ -228,7 +268,7 @@ namespace Sharp.DockManager.Behaviours
 		// Drag operation ends when the pointer is released. 
 		private static void Control_PointerReleased(object? sender, PointerReleasedEventArgs e)
 		{
-			Control control = (Control)sender!;
+			Control control = draggedItem!;
 
 			// release the capture
 			e.Pointer.Capture(null);
@@ -237,15 +277,15 @@ namespace Sharp.DockManager.Behaviours
 			cachedTransform.X = 0;
 			cachedTransform.Y = 0;
 			control.RenderTransform = null;
+			GetOnDrop(startingParent)?.Invoke(sender, e);
 			// disconnect the handlers 
-			control.PointerMoved -= Control_PointerMoved;
-			control.PointerReleased -= Control_PointerReleased;
+			draggedItem = null;
 		}
 
 
 		// modifies the shift on the control during the drag
 		// this essentially moves the control
-		private static void ShiftControl(Control control, PointerEventArgs e)
+		private static void ShiftControl(Control sender, Control control, PointerEventArgs e)
 		{
 			// get the current pointer location
 			Point currentPointerPosition = GetCurrentPointerPositionInWindow(control, e);
@@ -255,9 +295,9 @@ namespace Sharp.DockManager.Behaviours
 
 			// diff is how far the pointer shifted
 			Point diff = currentPointerPosition - startPointerPosition;
-			if (GetBlockXAxis(control))
+			if (stripPlacement is Dock.Right or Dock.Left)
 				diff = diff.WithX(0);
-			if (GetBlockYAxis(control))
+			else
 				diff = diff.WithY(0);
 
 			// get the original shift when the drag operation started
@@ -268,7 +308,7 @@ namespace Sharp.DockManager.Behaviours
 			Point shift = diff + startControlPosition;
 
 			// set the shift on the control
-			SetShift(control, shift);
+			SetShift(sender, control, shift);
 		}
 	}
 }
