@@ -13,15 +13,15 @@ namespace Sharp.Studio.Views
         {
             InitializeComponent();
             var assetsView = new DockableTabControl() { Dock = Dock.Left, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
-            assetsView.AddPage(new TabItem() { Header = new TextBlock() { Text = nameof(AssetsView) }, Content = new AssetsView() });
+            assetsView.AddPage(new TextBlock() { Text = nameof(AssetsView) },  new AssetsView() );
             //var assetsView1 = new DockableTabControl() { Dock = Dock.Right};
             // assetsView1.AddPage(new TabItem() { Header = new TextBlock() { Text = nameof(AssetsView) }, Content = new AssetsView() });
 
             var sceneView = new DockableTabControl() { Dock = Dock.Left };
-            sceneView.AddPage(new TabItem() { Header = new TextBlock() { Text = nameof(SceneView) }, Content = new SceneView() });
-            sceneView.AddPage(new TabItem() { Header = new TextBlock() { Text = nameof(AssetsView) }, Content = new AssetsView() });
+            sceneView.AddPage(new TextBlock() { Text = nameof(SceneView) }, new SceneView() );
+            sceneView.AddPage(new TextBlock() { Text = nameof(AssetsView) }, new AssetsView());
             var inspectorView = new DockableTabControl() { Dock = Dock.Right };
-            inspectorView.AddPage(new TabItem() { Header = new TextBlock() { Text = nameof(InspectorView) }, Content = new InspectorView() });
+            inspectorView.AddPage(new TextBlock() { Text = nameof(InspectorView) }, new InspectorView());
             var inspectorView1 = new DockableTabControl() { IsVisible = true, Dock = Dock.Right };
             //inspectorView1.AddPage(new TabItem() { Header = null , Content = null });
 

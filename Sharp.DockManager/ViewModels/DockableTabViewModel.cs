@@ -11,14 +11,14 @@ namespace Sharp.DockManager.ViewModels
 {
     public class DockableTabViewModel : ViewModelBase
     {
-        public ObservableCollection<TabItem> _tabItems { get; set; }
+        public ObservableCollection<DockableItem> Items { get; set; } = new();
     }
-    /*public struct DockItem
+    public struct DockableItem
     {
         /// <summary>
         /// Sets whether the width will be overridden.
         /// </summary>
-        public static readonly AvaloniaProperty PositionProperty
+       /* public static readonly AvaloniaProperty PositionProperty
                 = AvaloniaProperty.Register<DockItem, Point>(
                         nameof(DockItem.Position));
         /// <summary>
@@ -28,8 +28,8 @@ namespace Sharp.DockManager.ViewModels
         {
             get => (Point)GetValue(DockItem.PositionProperty);
             set => SetValue(DockItem.PositionProperty, value);
-        }
+        }*/
         public Control Header { get; set; }
         public Control Content { get; set; }
-    }*/
+    }
 }

@@ -40,7 +40,7 @@ namespace Sharp.DockManager
 		internal static Canvas canvas = new Canvas();
 		internal ScrollViewer scroller;
         Type IStyleable.StyleKey => typeof(DockableTabControl);
-        public ObservableCollection<TabItem> _tabItems { get; set; } = new();
+        public DockableTabViewModel _tabItems { get; set; } = new();
         public Dock Dock { get; set; }
         public Control SelectedHeader { get => SelectedItem as Control; }
         public Control SelectedBody { get => SelectedContent as Control; }
@@ -129,7 +129,7 @@ namespace Sharp.DockManager
 				var Height = selectedTab.DesiredSize.Height;
 
 
-				if (dockable._tabItems.Count is 1)
+				if (dockable.VisualChildren.Count is 1)
 				{
 					if (panel.Children.Count is 1)
 					{
@@ -155,7 +155,7 @@ namespace Sharp.DockManager
 
 					}
 				}
-				dockable._tabItems.Remove(selectedTab);
+				dockable.VisualChildren.Remove(selectedTab);
 
 				if (draggedItem is null)
 				{
@@ -170,7 +170,7 @@ namespace Sharp.DockManager
 					draggedItem.Show();
 				}
 				var draggedDockable = draggedItem.FindDescendantOfType<DockableTabControl>();
-				draggedDockable._tabItems.Add(selectedTab);
+				draggedDockable.VisualChildren.Add(selectedTab);
 				draggedItem.SizeToContent = SizeToContent.WidthAndHeight;
 				draggedItem.SystemDecorations = SystemDecorations.BorderOnly;
 				draggedItem.ExtendClientAreaToDecorationsHint = true;
@@ -272,8 +272,9 @@ namespace Sharp.DockManager
 		public DockableTabControl()
         {
             InitializeComponent();
-            ItemsSource = _tabItems;
-            Dock = Dock.Left;
+			ItemsSource = _tabItems.Items;
+			//DataContext = _tabItems;
+			Dock = Dock.Left;
 			Background = Brushes.Transparent;
 		}
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -312,17 +313,17 @@ namespace Sharp.DockManager
 				var targetDockable = lastTrigger.control.FindAncestorOfType<DockableTabControl>();
 				if (lastTrigger.control.Name is "PART_ItemsPresenter")
 				{
-					if (sourceDockable._tabItems.Count is 1)
+					if (sourceDockable.VisualChildren.Count is 1)
 						sourceDockControl.Children.Remove(sourceDockable);
-					sourceDockable._tabItems.Remove(selectedTab);
-					targetDockable.AddPage(selectedTab);
+					sourceDockable.VisualChildren.Remove(selectedTab);
+					targetDockable.VisualChildren.Add(selectedTab);
 				}
 				else
 				{
 					var targetDockControl = targetDockable.FindAncestorOfType<DockControl>();
 					var index = targetDockControl.Children.IndexOf(targetDockable);
 					var dockUnderMouse = DockPanel.GetDock(targetDockControl.Children[index] as Control);
-					if (sourceDockable._tabItems.Count is 1)
+					if (sourceDockable.VisualChildren.Count is 1)
 					{
 						sourceDockControl.Children.Remove(sourceDockable);
 						/*if (index == targetDockControl.Children.Count-1 && lastTrigger.area is Dock.Right or Dock.Bottom)
@@ -332,9 +333,9 @@ namespace Sharp.DockManager
 					}
 					else
 					{
-						sourceDockable._tabItems.Remove(selectedTab);
+						sourceDockable.VisualChildren.Remove(selectedTab);
 						var newTab = new DockableTabControl();
-						newTab._tabItems.Add(selectedTab);
+						newTab.VisualChildren.Add(selectedTab);
 						/*if (index == targetDockControl.Children.Count-1 && lastTrigger.area is Dock.Right or Dock.Bottom)
                             targetDockControl.Children.Add(newTab);
                         else*/
@@ -423,7 +424,7 @@ namespace Sharp.DockManager
 			DockPanel.SetDock(parent, dock);
 			return finalIndex;
 		}
-		public void AddPage(TabItem item)
+		public void AddPage(Control header, Control content)
         {
             /*if (item.Header is string)
             {
@@ -432,7 +433,7 @@ namespace Sharp.DockManager
                 panel.Children.Add(new Button() { Content = copy });
                 item.Header = panel;
             }*/
-            _tabItems.Add(item);
+            _tabItems.Items.Add(new ViewModels.DockableItem() { Header = header, Content = content});
         }
     }
 }
