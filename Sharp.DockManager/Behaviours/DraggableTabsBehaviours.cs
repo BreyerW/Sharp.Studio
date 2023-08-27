@@ -17,7 +17,7 @@ namespace Sharp.DockManager.Behaviours
 	//TODO: change to DragDropBehaviour and add Drop, DragLeave, DragEnter events, leave/enter based on parent Bounds property
 	//resignate from global hooks here instead implement dragleave asap andd here enable hooks while disabling this behaviour
 	//Also consider putting this on parent then drag bounds not as necessary
-	public class DraggableTabsBehaviours
+	/*public class DraggableTabsBehaviours
 	{
 
 		private static readonly TranslateTransform cachedTransform=new TranslateTransform();
@@ -183,13 +183,13 @@ namespace Sharp.DockManager.Behaviours
 					Control_PointerPressed(parent, e);
 				}
 			},handledEventsToo:true);
-			InputElement.PointerMovedEvent.AddClassHandler<Control>((s, e) => {
+			InputElement.PointerMovedEvent.AddClassHandler<ContentPresenter>((s, e) => {
 				if (draggedItem is not null && GetIsSet(startingParent))
 				{
 					Control_PointerMoved(draggedItem, e);
 				}
 			}, handledEventsToo: true);
-			InputElement.PointerReleasedEvent.AddClassHandler<Control>((s, e) => {
+			InputElement.PointerReleasedEvent.AddClassHandler<ContentPresenter>((s, e) => {
 				if (draggedItem is not null)
 				{
 					Control_PointerReleased(draggedItem, e);
@@ -276,9 +276,10 @@ namespace Sharp.DockManager.Behaviours
 
 			cachedTransform.X = 0;
 			cachedTransform.Y = 0;
-			control.RenderTransform = null;
+			
 			GetOnDrop(startingParent)?.Invoke(sender, e);
-			// disconnect the handlers 
+			// disconnect the handlers
+			control.RenderTransform = null; 
 			draggedItem = null;
 		}
 
@@ -310,5 +311,5 @@ namespace Sharp.DockManager.Behaviours
 			// set the shift on the control
 			SetShift(sender, control, shift);
 		}
-	}
+	}*/
 }

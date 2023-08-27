@@ -60,23 +60,6 @@ namespace Sharp.DockManager
                 i++;
             }
         }
-        private static DockSplitter CreateSplitter(Dock dockPos)
-        {
-            var gridSplitter = new DockSplitter();
-            if (dockPos is Dock.Left or Dock.Right)
-            {
-                gridSplitter.Width = 5;
-                gridSplitter.HorizontalAlignment = HorizontalAlignment.Center;
-                gridSplitter.VerticalAlignment = VerticalAlignment.Stretch;
-            }
-            else
-            {
-                gridSplitter.Height = 5;
-                gridSplitter.HorizontalAlignment = HorizontalAlignment.Stretch;
-                gridSplitter.VerticalAlignment = VerticalAlignment.Center;
-            }
-            gridSplitter.Background = new SolidColorBrush(Colors.Red);
-            return gridSplitter;
-        }
+      
     }
 }

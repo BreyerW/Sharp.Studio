@@ -6,6 +6,86 @@
              xmlns:behaviours="using:Sharp.DockManager.Behaviours"
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"  
              x:Class="Sharp.DockManager.DockableTabControl"
+            
 			 
 			 >
+  <UserControl.Resources>
+
+    <!---->
+    <ControlTheme TargetType="dt:DockableTabControl"
+        x:Key="{x:Type dt:DockableTabControl}">
+      <Setter Property="ItemContainerTheme">
+        <Setter.Value>
+          <ControlTheme TargetType="TabItem">
+            <!-- <Setter Property="behaviours:DragDropBehaviours.IsSet" Value="True"/>
+            <Setter Property="behaviours:DragDropBehaviours.BlockYAxis" Value="True"/>
+            <Setter Property="behaviours:DragDropBehaviours.DragBounds" Value="{Binding Path=Bounds,
+							RelativeSource={RelativeSource AncestorType={x:Type ScrollViewer}}}"/>-->
+            <Setter Property="Template">
+              <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabItem}">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ContentPresenter FontSize="20" Margin="1" Content="{TemplateBinding Header}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                    <Button Grid.Column="1" Content="x" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent"/>
+                  </Grid>
+
+                </ControlTemplate>
+
+              </Setter.Value>
+            </Setter>
+
+          </ControlTheme>
+        </Setter.Value>
+      </Setter>
+
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="Auto,*,Auto">
+          <DockPanel Grid.Column="1" Grid.Row="1" Name="panel">
+            
+            <Grid DockPanel.Dock="{TemplateBinding TabStripPlacement}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <ScrollViewer Name="scroller"  HorizontalAlignment="Stretch"
+                    HorizontalScrollBarVisibility="Hidden">
+
+                <ItemsPresenter Name="PART_ItemsPresenter"
+												
+												ItemsPanel="{TemplateBinding ItemsPanel}"
+												>
+                </ItemsPresenter>
+
+              </ScrollViewer>
+              <Button HorizontalAlignment="Right" Background="Transparent" Content="+" Grid.Column="1" />
+            </Grid>
+              <ContentPresenter
+								Name="PART_SelectedContentHost"
+											  Margin="{TemplateBinding Padding}"
+											  HorizontalContentAlignment="Stretch"
+											  VerticalContentAlignment="Stretch"
+											  Content="{TemplateBinding SelectedContent}"
+											  ContentTemplate="{TemplateBinding SelectedContentTemplate}"
+											  Background="Transparent"
+											  BorderThickness="2"
+											  BorderBrush="Red"
+											  />
+            
+          </DockPanel>
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+      <Setter Property="ItemsPanel">
+        <ItemsPanelTemplate>
+          <StackPanel  Orientation="Horizontal"/>
+        </ItemsPanelTemplate>
+      </Setter>
+
+    </ControlTheme>
+  </UserControl.Resources>
 </UserControl>
