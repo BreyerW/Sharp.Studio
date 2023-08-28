@@ -13,7 +13,7 @@ namespace Sharp.DockManager.ViewModels
     {
         public ObservableCollection<DockableItem> Items { get; set; } = new();
     }
-    public struct DockableItem
+    public class DockableItem
     {
         /// <summary>
         /// Sets whether the width will be overridden.
