@@ -74,7 +74,7 @@ namespace Sharp.DockManager
 		{
 			InitializeComponent();
 			ItemsSource = _tabItems.Items;
-			//DataContext = _tabItems;
+			DataContext = _tabItems.Items;
 			Dock = Dock.Left;
 			Background = Brushes.Transparent;
 		}
@@ -155,7 +155,7 @@ namespace Sharp.DockManager
 					}
 					else
 					{
-						var index = panel.Children.IndexOf(sourceDockable);
+						/*var index = panel.Children.IndexOf(sourceDockable);
 						DockSplitter splitter = null;
 						if (index is 0 && panel.Children.Count > 2)
 							splitter = panel.Children[index + 1] as DockSplitter;
@@ -165,34 +165,34 @@ namespace Sharp.DockManager
 							splitter = panel.Children[index - 1] as DockSplitter;
 						else
 							splitter = panel.Children[index - 1] is DockSplitter sp && DockPanel.GetDock(sp) == sourceDockable.Dock ? sp : panel.Children[index + 1] as DockSplitter;
-						panel.Children.Remove(sourceDockable);
-						panel.Children.Remove(splitter);
-
+						*/panel.Children.Remove(sourceDockable);
+						//panel.Children.Remove(splitter);
+						sourceDockable._tabItems.Items.Remove(selectedItem);
 					}
 				}
-				sourceDockable._tabItems.Items.Remove(selectedItem);
+				else
+					sourceDockable._tabItems.Items.Remove(selectedItem);
+				
 				if (draggedItem is null)
 				{
 					draggedItem = new Window();
 					draggedItem.Show();
 					var docker = new DockControl();
 					var tab = new DockableTabControl() { Dock = Dock.Left };
+					tab._tabItems.Items.Add(selectedItem);
+					sourceDockable = tab;
 					docker.StartWithDocks(new[] { tab });
 					draggedItem.Content = docker;
+					
 					//draggedItem.Width = Width;
 					//draggedItem.Height = Height;
 				}
 				draggedItem.SizeToContent = SizeToContent.WidthAndHeight;
-				
-				var draggedDockable = draggedItem.FindDescendantOfType<DockableTabControl>();
-				draggedDockable._tabItems.Items.Add(selectedItem);
-				
 				draggedItem.SystemDecorations = SystemDecorations.BorderOnly;
 				draggedItem.ExtendClientAreaToDecorationsHint = true;
 				draggedItem.ShowInTaskbar = false;
-				//draggedItem.Opacity = 0.5;
+				draggedItem.Opacity = 0.5;
 				
-				sourceDockable = draggedDockable;
 				e.Pointer.Captured.PointerReleased += Captured_PointerReleased;
 				e.Pointer.Captured.PointerMoved += Captured_PointerMoved;
 			}

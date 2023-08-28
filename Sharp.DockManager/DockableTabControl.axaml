@@ -66,7 +66,7 @@
             </Grid>
             <ContentPresenter 
               Name="PART_SelectedContentHost"
-              Content="{TemplateBinding SelectedContent}"
+              Content="{TemplateBinding SelectedItem}"
               ContentTemplate="{TemplateBinding ContentTemplate}"/>
           </DockPanel>
           </Grid>
@@ -92,16 +92,15 @@
       </Setter>
       <Setter Property="ContentTemplate">
         <DataTemplate>
-
           <ContentPresenter
                           HorizontalContentAlignment="Stretch"
                           VerticalContentAlignment="Stretch"
                           Background="Transparent"
                           BorderThickness="2"
                           BorderBrush="Red"
-                          Margin="{TemplateBinding Padding}"
                           Content="{Binding Content}"
                           ContentTemplate="{TemplateBinding SelectedContentTemplate}"
+                          Margin="{TemplateBinding Padding}"
 											  />
         </DataTemplate>
       </Setter>

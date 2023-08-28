@@ -18,9 +18,11 @@ namespace Sharp.Studio.Views
             // assetsView1.AddPage(new TabItem() { Header = new TextBlock() { Text = nameof(AssetsView) }, Content = new AssetsView() });
 
             var sceneView = new DockableTabControl() { Dock = Dock.Left };
-            sceneView.AddPage(new TextBlock() { Text = nameof(SceneView) }, new SceneView() );
+            
             sceneView.AddPage(new TextBlock() { Text = nameof(AssetsView) }, new AssetsView());
-            var inspectorView = new DockableTabControl() { Dock = Dock.Right };
+			sceneView.AddPage(new TextBlock() { Text = nameof(SceneView) }, new SceneView() );
+            sceneView.AddPage(new TextBlock() { Text = nameof(AssetsView) }, new AssetsView());
+			var inspectorView = new DockableTabControl() { Dock = Dock.Right };
             inspectorView.AddPage(new TextBlock() { Text = nameof(InspectorView) }, new InspectorView());
             var inspectorView1 = new DockableTabControl() { IsVisible = true, Dock = Dock.Right };
             //inspectorView1.AddPage(new TabItem() { Header = null , Content = null });
