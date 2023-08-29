@@ -31,11 +31,12 @@ namespace Sharp.DockManager
     public partial class DockableTabControl : TabControl, IStyleable, IDockable
     {
 		private static Window draggedItem = null;
+		private static TranslateTransform dragTransform = new TranslateTransform();
 		private static (Control control, Dock? area) lastTrigger = default;
 		private static DockableTabControl sourceDockable = null;
 		private static DockableItem selectedItem = null;
-		private static Point lastMousePos;
-		private static PixelPoint mousePosOffset;
+		private static PixelPoint screenMousePosOffset;
+		private static Point mousePosStart;
 		private static Dictionary<Window, int> sortedWindows = new();
 		internal static Border adornedElement = new Border();
 		internal static Canvas canvas = new Canvas();
@@ -108,16 +109,21 @@ namespace Sharp.DockManager
 			var s = ((Control)e.Source).FindAncestorOfType<TabItem>();
 			if (s is null)
 				return;
-			lastMousePos = e.GetPosition(s);
-			mousePosOffset = s.PointToScreen(e.GetPosition(s)) - s.GetVisualParent().PointToScreen(s.Bounds.Position);
+			var pos = e.GetPosition(scroller);
+			mousePosStart = pos;
+			screenMousePosOffset = s.PointToScreen(e.GetPosition(s)) - s.GetVisualParent().PointToScreen(s.Bounds.Position);
 			sourceDockable = s.FindAncestorOfType<DockableTabControl>();
 			selectedItem = (DockableItem)s.Content;
 		}
 		protected override void OnPointerReleased(PointerReleasedEventArgs e)
 		{
 			base.OnPointerReleased(e);
+			dragTransform.X = 0;
+			dragTransform.Y = 0;
+			var tabItem = (TabItem)sourceDockable.LogicalChildren[sourceDockable.SelectedIndex];
 			sourceDockable = null;
 			selectedItem = null;
+			tabItem.RenderTransform = null;
 		}
 		protected override void OnPointerMoved(PointerEventArgs e)
 		{
@@ -129,20 +135,22 @@ namespace Sharp.DockManager
 				if (scroller is null)
 					return;
 				Point scrollerMousePos = e.GetPosition(scroller);
-
-				if (scroller.Bounds.Contains(scrollerMousePos))
-				{
-					return;
-				}
-				UpdateZOrder();
-
 				Point mousePos = e.GetPosition(sourceDockable);
 				var screenPos = sourceDockable.PointToScreen(mousePos);
+				var tabItem = (TabItem)sourceDockable.LogicalChildren[sourceDockable.SelectedIndex];
+				if (scroller.Bounds.Contains(scrollerMousePos))
+				{
+					var transform = (tabItem.RenderTransform ??= dragTransform) as TranslateTransform;
+					transform.X = scrollerMousePos.X - mousePosStart.X;
+					return;
+				}
+				tabItem.RenderTransform = null;
+				UpdateZOrder();
+				
 				var panel = sourceDockable.FindAncestorOfType<DockControl>();
 				var attachedToWin = panel.FindAncestorOfType<Window>();
-				//var Width = sourceDockable.DesiredSize.Width;
-				//var Height = sourceDockable.DesiredSize.Height;
-
+				var Width = sourceDockable.Bounds.Width;
+				var Height = sourceDockable.Bounds.Height;
 
 				if (sourceDockable._tabItems.Items.Count is 1)
 				{
@@ -184,12 +192,10 @@ namespace Sharp.DockManager
 					docker.StartWithDocks(new[] { tab });
 					draggedItem.Content = docker;
 					
-					//draggedItem.Width = Width;
-					//draggedItem.Height = Height;
+					draggedItem.MaxWidth = draggedItem.DesktopScaling* Width;
+					draggedItem.MaxHeight = draggedItem.DesktopScaling* Height;
 				}
-				draggedItem.SizeToContent = SizeToContent.WidthAndHeight;
 				draggedItem.SystemDecorations = SystemDecorations.BorderOnly;
-				draggedItem.ExtendClientAreaToDecorationsHint = true;
 				draggedItem.ShowInTaskbar = false;
 				draggedItem.Opacity = 0.5;
 				
@@ -202,7 +208,7 @@ namespace Sharp.DockManager
 		{
 			Point mousePos = e.GetPosition(draggedItem);
 			var screenPos = draggedItem.PointToScreen(mousePos);
-			draggedItem.Position = screenPos - mousePosOffset;
+			draggedItem.Position = screenPos - screenMousePosOffset;
 			(Control control, Dock? area) currentTrigger = default;
 
 			Control? hit = null;
@@ -312,7 +318,6 @@ namespace Sharp.DockManager
 			if (lastTrigger.control is null)
 			{
 				draggedItem.SystemDecorations = SystemDecorations.Full;
-				draggedItem.ExtendClientAreaToDecorationsHint = false;
 				draggedItem.Opacity = 1;
 				draggedItem.ShowInTaskbar = true;
 			}
