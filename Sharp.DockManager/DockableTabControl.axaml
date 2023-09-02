@@ -42,11 +42,11 @@
           </ControlTheme>
         </Setter.Value>
       </Setter>-->
-
+      
     <Setter Property="Template">
         <ControlTemplate>
-          <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="Auto,*,Auto">
-          <DockPanel Grid.Column="1" Grid.Row="1" Name="panel">
+          <Grid RowDefinitions="*,*" ColumnDefinitions="*,*">
+          <DockPanel Grid.Column="0" Grid.Row="0" Grid.RowSpan="2" Grid.ColumnSpan="2" Name="panel">
             
             <Grid DockPanel.Dock="{TemplateBinding TabStripPlacement}">
               <Grid.ColumnDefinitions>
@@ -74,7 +74,8 @@
       </Setter>
       <Setter Property="ItemsPanel">
         <ItemsPanelTemplate>
-          <StackPanel  Orientation="Horizontal"/>
+          <StackPanel Orientation="Horizontal"/>
+          
         </ItemsPanelTemplate>
       </Setter>
       <Setter Property="ItemTemplate">
