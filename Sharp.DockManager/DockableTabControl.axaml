@@ -15,33 +15,6 @@
     <!---->
     <ControlTheme TargetType="dt:DockableTabControl"
         x:Key="{x:Type dt:DockableTabControl}">
-      <!--<Setter Property="ItemContainerTheme">
-        <Setter.Value>
-          <ControlTheme TargetType="TabItem">
-            <Setter Property="behaviours:DragDropBehaviours.IsSet" Value="True"/>
-            <Setter Property="behaviours:DragDropBehaviours.BlockYAxis" Value="True"/>
-            <Setter Property="behaviours:DragDropBehaviours.DragBounds" Value="{Binding Path=Bounds,
-							RelativeSource={RelativeSource AncestorType={x:Type ScrollViewer}}}"/>
-            <Setter Property="Template">
-              <Setter.Value>
-                <ControlTemplate TargetType="{x:Type TabItem}">
-                  <Grid>
-                    <Grid.ColumnDefinitions>
-                      <ColumnDefinition Width="*"/>
-                      <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <ContentPresenter FontSize="20" Margin="1" Content="{TemplateBinding Header}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                    <Button Grid.Column="1" Content="x" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent"/>
-                  </Grid>
-
-                </ControlTemplate>
-
-              </Setter.Value>
-            </Setter>
-
-          </ControlTheme>
-        </Setter.Value>
-      </Setter>-->
       
     <Setter Property="Template">
         <ControlTemplate>
@@ -85,7 +58,7 @@
               <ColumnDefinition Width="*"/>
               <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <ContentPresenter FontSize="20" Margin="1" Content="{Binding Header}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            <ContentPresenter Margin="1" Content="{Binding Header}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
             <Button Grid.Column="1" Content="x" HorizontalAlignment="Center" VerticalAlignment="Center" Background="Transparent"/>
           </Grid>
 

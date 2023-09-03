@@ -101,6 +101,24 @@ namespace Sharp.DockManager
 				if(s.IsAnimating(Helpers.TabItemXProperty))
 					s.Arrange(s.Bounds.WithX(e.GetNewValue<double>()));
 			});
+			InputElement.PointerPressedEvent.AddClassHandler<Interactive>((s, e) =>
+			{
+				PointerPressed(e);
+				e.Handled = true;
+			});
+			InputElement.PointerMovedEvent.AddClassHandler<Interactive>((s, e) =>
+			{
+				PointerMoved(e);
+				if(draggedItem is not null)
+					DoDrag(e);
+				e.Handled = true;
+			});
+			InputElement.PointerReleasedEvent.AddClassHandler<Interactive>((s, e) =>
+			{
+				DropTab(e);
+				DropFinished(e);
+				e.Handled = true;
+			});
 			adornedElement.Background = Brushes.PaleVioletRed;
 			adornedElement.Opacity = 0.33;
 			adornedElement.IsVisible = true;
@@ -132,61 +150,66 @@ namespace Sharp.DockManager
 			gridSplitter.Background = new SolidColorBrush(Colors.Red);
 			return gridSplitter;
 		}
-		private static void Captured_PointerReleased(object? sender, PointerReleasedEventArgs e)
+		private static void PointerPressed(PointerPressedEventArgs e)
 		{
-			OnPreviewTabDrop(sender, e);
-			e.Pointer.Capture(null);
-		}
-		protected override void OnPointerPressed(PointerPressedEventArgs e)
-		{
-			base.OnPointerPressed(e);
 			var s = ((Control)e.Source).FindAncestorOfType<TabItem>(true);
 			if (s is null)
 				return;
-				
-			//var pos = e.GetPosition(s);
-			var pos = e.GetPosition(scroller);
+			sourceDockable = s.FindAncestorOfType<DockableTabControl>();	
+			var pos = e.GetPosition(sourceDockable.scroller);
 			mousePosOffset = pos;//-s.TranslatePoint(default, scroller).GetValueOrDefault();
 			screenMousePosOffset = s.PointToScreen(e.GetPosition(s)) - s.GetVisualParent().PointToScreen(s.Bounds.Position);
-			sourceDockable = s.FindAncestorOfType<DockableTabControl>();
+			
 			foreach (var item in sourceDockable._tabItems.Items)
 			{
 				var node = virtualOrderOfChildren.AddLast(item);
 				if(node.Value == s.Content)
 					selectedItem=node;
 			}
+			e.Pointer.Capture(sourceDockable);
 		}
-		protected override void OnPointerReleased(PointerReleasedEventArgs e)
+		protected static void DropFinished(PointerReleasedEventArgs e)
 		{
-			base.OnPointerReleased(e);
-			var newIndex = 0;
-			foreach (var item in virtualOrderOfChildren)
+			if (virtualOrderOfChildren.Count > 0)
 			{
-				if (item == selectedItem.Value)
-					break;
-				newIndex++;
+				var newIndex = 0;
+				foreach (var item in virtualOrderOfChildren)
+				{
+					if (item == selectedItem.Value)
+						break;
+					newIndex++;
+				}
+				sourceDockable._tabItems.Items.Move(sourceDockable.SelectedIndex, newIndex);
+				sourceDockable.SelectedIndex = newIndex;
+				virtualOrderOfChildren.Clear();
 			}
-			sourceDockable._tabItems.Items.Move(sourceDockable.SelectedIndex,newIndex);
-			sourceDockable.SelectedIndex = newIndex;
 			sourceDockable = null;
-			selectedItem = null;
+			canvas.IsVisible = false;
 			draggedItem = null;
-			virtualOrderOfChildren.Clear();
+			selectedItem = null;
+			lastTrigger = (null, null);
+			e.Pointer.Capture(null);
 		}
-		
-		protected async override void OnPointerMoved(PointerEventArgs e)
+		protected override Size ArrangeOverride(Size finalSize)
 		{
-			base.OnPointerMoved(e);
+			Debug.WriteLine("arrange");
+			return base.ArrangeOverride(finalSize);
+		}
+		//TODO: maybe go back to using global classhandlers
+		private static async void PointerMoved(PointerEventArgs e)
+		{
 			var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
 			if (selectedItem is not null && draggedItem is null && e.GetCurrentPoint(null).Properties.IsLeftButtonPressed)
 			{
-				if (scroller is null)
+				if (sourceDockable.scroller is null)
 					return;
-				Point scrollerMousePos = e.GetPosition(scroller);
+				Point scrollerMousePos = e.GetPosition(sourceDockable.scroller);
 				Point mousePos = e.GetPosition(sourceDockable);
 				var screenPos = sourceDockable.PointToScreen(mousePos);
-				if (scroller.Bounds.Contains(scrollerMousePos))
+				if (sourceDockable.scroller.Bounds.Contains(scrollerMousePos))
 				{
+					if (sourceDockable._tabItems.Items.Count is 1)
+						return;
 					var tabItem = sourceDockable.ContainerFromIndex(sourceDockable.SelectedIndex);
 					var prevTabItem = sourceDockable.ContainerFromItem(selectedItem.Previous?.Value);
 					var nextTabItem = sourceDockable.ContainerFromItem(selectedItem.Next?.Value);
@@ -219,10 +242,10 @@ namespace Sharp.DockManager
 						(swapAnimation.Children[1].Setters[0] as Setter).Value = destination;
 						
 						await swapAnimation.RunAsync(tabToBeAnimated);
-						//Debug.WriteLine("run animation");
 					}
 					return;
 				}
+				virtualOrderOfChildren.Clear();
 				UpdateZOrder();
 				
 				var panel = sourceDockable.FindAncestorOfType<DockControl>();
@@ -269,21 +292,19 @@ namespace Sharp.DockManager
 					sourceDockable = tab;
 					docker.StartWithDocks(new[] { tab });
 					draggedItem.Content = docker;
-					
-					draggedItem.MaxWidth = draggedItem.DesktopScaling* Width;
-					draggedItem.MaxHeight = draggedItem.DesktopScaling* Height;
+					draggedItem.Width = Width;
+					draggedItem.Height = Height;
 				}
-				
-				draggedItem.SystemDecorations = SystemDecorations.BorderOnly;
+				draggedItem.Topmost = true;
+				//draggedItem.SystemDecorations = SystemDecorations.BorderOnly;
+				draggedItem.ExtendClientAreaToDecorationsHint = true;
+				draggedItem.ExtendClientAreaChromeHints = Avalonia.Platform.ExtendClientAreaChromeHints.NoChrome;
 				draggedItem.ShowInTaskbar = false;
 				draggedItem.Opacity = 0.5;
-				
-				e.Pointer.Captured.PointerReleased += Captured_PointerReleased;
-				e.Pointer.Captured.PointerMoved += Captured_PointerMoved;
 			}
 		}
 
-		private static void Captured_PointerMoved(object? sender, PointerEventArgs e)
+		private static void DoDrag(PointerEventArgs e)
 		{
 			Point mousePos = e.GetPosition(draggedItem);
 			var screenPos = draggedItem.PointToScreen(mousePos);
@@ -305,27 +326,63 @@ namespace Sharp.DockManager
 					var d = hit.FindAncestorOfType<DockableTabControl>(true);
 					if (d is not null)
 					{
-						if (d.SelectedHeader.IsVisualAncestorOf(hit))
+						var dPos = e.GetPosition(d);
+						if (d.scroller.Bounds.Contains(dPos))
 						{
-							var posInHeader = d.SelectedHeader.PointToClient(screenPos);
-							//loop through all header children bounds.width and compare then decide left or right
-							currentTrigger = (d.SelectedHeader, Dock.Left);
+							Control tab = null;
+							var scrollerPos = e.GetPosition(d.scroller);
+							foreach (var t in d.header.Panel.Children)
+							{
+								if (t.Bounds.Contains(scrollerPos))
+								{
+									tab = t;
+									break;
+								}
+							}
+							if (tab is not null)
+							{
+								var i = d.IndexFromContainer(tab);
+								draggedItem.Close();
+								sourceDockable._tabItems.Items.Remove(selectedItem.Value);
+								draggedItem = null;
+								d._tabItems.Items.Insert(i, selectedItem.Value);
+								d.SelectedItem = selectedItem.Value;
+								sourceDockable = d;
+								//mousePosOffset = e.GetPosition(sourceDockable.scroller);//-s.TranslatePoint(default, scroller).GetValueOrDefault();
+								//screenMousePosOffset = t.PointToScreen(e.GetPosition(t)) - t.GetVisualParent().PointToScreen(t.Bounds.Position);
+								
+								foreach (var item in sourceDockable._tabItems.Items)
+								{
+									var node = virtualOrderOfChildren.AddLast(item);
+									if (node.Value == selectedItem.Value)
+										selectedItem = node;
+								}
+								e.Pointer.Capture(sourceDockable);
+								break;
+							}
+							else
+							{
+								var posInHeader = e.GetPosition(d.header);
+								//loop through all header children bounds.width and compare then decide left or right
+								currentTrigger = (d.scroller, Dock.Left);
+							}
 						}
 						else
 						{
-							var maybePosInBody = window.TranslatePoint(pos, d.SelectedBody);
-							if (maybePosInBody.HasValue)
+							var posInBody = e.GetPosition(d.body);
+							if (posInBody.X >= 0 && posInBody.Y >= 0)
 							{
-								var posInBody = maybePosInBody.Value;
-								if (posInBody.X < d.SelectedBody.Bounds.Width * 0.25)
-									currentTrigger = (d.SelectedBody, Dock.Left);
-								else if (posInBody.X > d.SelectedBody.Bounds.Width * 0.75)
-									currentTrigger = (d.SelectedBody, Dock.Right);
-								else if (posInBody.X > d.SelectedBody.Bounds.Width * 0.25 && posInBody.X < d.SelectedBody.Bounds.Width * 0.75 && posInBody.Y < d.SelectedBody.Bounds.Height * 0.5)
-									currentTrigger = (d.SelectedBody, Dock.Top);
+								if (posInBody.X < d.body.Bounds.Width * 0.25)
+									currentTrigger = (d.body, Dock.Left);
+								else if (posInBody.X > d.body.Bounds.Width * 0.75)
+									currentTrigger = (d.body, Dock.Right);
+								else if (posInBody.X > d.body.Bounds.Width * 0.25 && posInBody.X < d.body.Bounds.Width * 0.75 && posInBody.Y < d.body.Bounds.Height * 0.5)
+									currentTrigger = (d.body, Dock.Top);
 								else
-									currentTrigger = (d.SelectedBody, Dock.Bottom);
+									currentTrigger = (d.body, Dock.Bottom);
 							}
+							else
+								break;
 						}
 					}
 					//Debug.WriteLine("area: " + currentTrigger.area);
@@ -387,16 +444,15 @@ namespace Sharp.DockManager
             else if (e.Delta.Y < 0)
                 scroller.LineRight();
         }
-		private static void OnPreviewTabDrop(object sender, PointerReleasedEventArgs e)
+		private static void DropTab(PointerReleasedEventArgs e)
 		{
 			if (draggedItem is null)
 				return;
 
-			e.Pointer.Captured.PointerReleased -= Captured_PointerReleased;
-			e.Pointer.Captured.PointerMoved -= Captured_PointerMoved;
 			if (lastTrigger.control is null)
 			{
-				draggedItem.SystemDecorations = SystemDecorations.Full;
+				draggedItem.ExtendClientAreaToDecorationsHint = false;
+				draggedItem.Topmost = false;
 				draggedItem.Opacity = 1;
 				draggedItem.ShowInTaskbar = true;
 			}
@@ -438,11 +494,6 @@ namespace Sharp.DockManager
 					}
 				}
 			}
-			canvas.IsVisible = false;
-			draggedItem = null;
-			//selectedTab.IsSelected = true;
-			selectedItem = null;
-			lastTrigger = (null, null);
 		}
 		private static Rect CalculateArrangement(Control child, in Rect arrangeSize, ref double accumulatedLeft, ref double accumulatedRight, ref double accumulatedTop, ref double accumulatedBottom, bool fillChildren = false)
 		{
