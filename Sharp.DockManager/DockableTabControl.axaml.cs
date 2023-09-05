@@ -28,6 +28,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Sharp.DockManager
 {
@@ -62,6 +64,7 @@ namespace Sharp.DockManager
 			}
 		};
 		private static Window draggedItem = null;
+		private static CancellationTokenSource cts = null;
 		private static (Control control, Dock? area) lastTrigger = default;
 		private static DockableTabControl sourceDockable = null;
 		private static PixelPoint screenMousePosOffset;
@@ -155,9 +158,10 @@ namespace Sharp.DockManager
 			var s = ((Control)e.Source).FindAncestorOfType<TabItem>(true);
 			if (s is null)
 				return;
-			sourceDockable = s.FindAncestorOfType<DockableTabControl>();	
+			sourceDockable = s.FindAncestorOfType<DockableTabControl>();
+			sourceDockable.SelectedItem = s.Content;
 			var pos = e.GetPosition(sourceDockable.scroller);
-			mousePosOffset = pos;//-s.TranslatePoint(default, scroller).GetValueOrDefault();
+			mousePosOffset = pos-s.TranslatePoint(default, sourceDockable.scroller).GetValueOrDefault();
 			screenMousePosOffset = s.PointToScreen(e.GetPosition(s)) - s.GetVisualParent().PointToScreen(s.Bounds.Position);
 			
 			foreach (var item in sourceDockable._tabItems.Items)
@@ -168,7 +172,7 @@ namespace Sharp.DockManager
 			}
 			e.Pointer.Capture(sourceDockable);
 		}
-		protected static void DropFinished(PointerReleasedEventArgs e)
+		private static void DropFinished(PointerReleasedEventArgs e)
 		{
 			if (virtualOrderOfChildren.Count > 0)
 			{
@@ -179,23 +183,25 @@ namespace Sharp.DockManager
 						break;
 					newIndex++;
 				}
-				sourceDockable._tabItems.Items.Move(sourceDockable.SelectedIndex, newIndex);
-				sourceDockable.SelectedIndex = newIndex;
+				if (sourceDockable.SelectedIndex != newIndex)
+				{
+					sourceDockable._tabItems.Items.Move(sourceDockable.SelectedIndex, newIndex);
+					sourceDockable.SelectedIndex = newIndex;
+				}
+				else
+					sourceDockable.header.Panel.InvalidateArrange();
 				virtualOrderOfChildren.Clear();
+				
 			}
 			sourceDockable = null;
 			canvas.IsVisible = false;
 			draggedItem = null;
 			selectedItem = null;
 			lastTrigger = (null, null);
+			mousePosOffset = default;
+			screenMousePosOffset = default;
 			e.Pointer.Capture(null);
 		}
-		protected override Size ArrangeOverride(Size finalSize)
-		{
-			Debug.WriteLine("arrange");
-			return base.ArrangeOverride(finalSize);
-		}
-		//TODO: maybe go back to using global classhandlers
 		private static async void PointerMoved(PointerEventArgs e)
 		{
 			var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
@@ -204,19 +210,18 @@ namespace Sharp.DockManager
 				if (sourceDockable.scroller is null)
 					return;
 				Point scrollerMousePos = e.GetPosition(sourceDockable.scroller);
-				Point mousePos = e.GetPosition(sourceDockable);
-				var screenPos = sourceDockable.PointToScreen(mousePos);
 				if (sourceDockable.scroller.Bounds.Contains(scrollerMousePos))
 				{
 					if (sourceDockable._tabItems.Items.Count is 1)
 						return;
+					if (cts is null)
+						cts = new();
 					var tabItem = sourceDockable.ContainerFromIndex(sourceDockable.SelectedIndex);
 					var prevTabItem = sourceDockable.ContainerFromItem(selectedItem.Previous?.Value);
 					var nextTabItem = sourceDockable.ContainerFromItem(selectedItem.Next?.Value);
 
-					var mouseDelta = scrollerMousePos.X - mousePosOffset.X;
-					mousePosOffset = scrollerMousePos;
-					tabItem.Arrange(tabItem.Bounds.WithX(tabItem.Bounds.X+ mouseDelta));
+					var expectedTabLoc = scrollerMousePos - mousePosOffset;
+					tabItem.Arrange(tabItem.Bounds.WithX(expectedTabLoc.X));
 					TabItem tabToBeAnimated = null;
 					
 					if (nextTabItem is TabItem next && !next.IsAnimating(Helpers.TabItemXProperty) && tabItem.Bounds.Center.X > next.Bounds.X)
@@ -241,11 +246,17 @@ namespace Sharp.DockManager
 						(swapAnimation.Children[0].Setters[0] as Setter).Value = tabToBeAnimated.Bounds.X;
 						(swapAnimation.Children[1].Setters[0] as Setter).Value = destination;
 						
-						await swapAnimation.RunAsync(tabToBeAnimated);
+						await swapAnimation.RunAsync(tabToBeAnimated, cts.Token);
+
+						//catch(TaskCanceledException){
+							//tabToBeAnimated.GetLogicalParent<Panel>().InvalidateArrange();
+						//}
 					}
 					return;
 				}
 				virtualOrderOfChildren.Clear();
+				//make sure nothing holds reference to old virtualOrderOfChildren nodes
+				selectedItem = new LinkedListNode<DockableItem>(selectedItem.Value);
 				UpdateZOrder();
 				
 				var panel = sourceDockable.FindAncestorOfType<DockControl>();
@@ -274,14 +285,20 @@ namespace Sharp.DockManager
 							splitter = panel.Children[index - 1] as DockSplitter;
 						else
 							splitter = panel.Children[index - 1] is DockSplitter sp && DockPanel.GetDock(sp) == sourceDockable.Dock ? sp : panel.Children[index + 1] as DockSplitter;
-						*/panel.Children.Remove(sourceDockable);
-						//panel.Children.Remove(splitter);
+						*/
 						sourceDockable._tabItems.Items.Remove(selectedItem.Value);
+						panel.Children.Remove(sourceDockable);
+						//panel.Children.Remove(splitter);
 					}
 				}
 				else
+				{
 					sourceDockable._tabItems.Items.Remove(selectedItem.Value);
-				
+					//need to cancel all swap animations in flight to ensure TabItem
+					//never gets stuck in shifted state due to animation when leaving ScrollViewer
+					cts?.Cancel();
+				}
+				cts = null;
 				if (draggedItem is null)
 				{
 					draggedItem = new Window();
@@ -296,7 +313,7 @@ namespace Sharp.DockManager
 					draggedItem.Height = Height;
 				}
 				draggedItem.Topmost = true;
-				//draggedItem.SystemDecorations = SystemDecorations.BorderOnly;
+				draggedItem.SystemDecorations = SystemDecorations.BorderOnly;
 				draggedItem.ExtendClientAreaToDecorationsHint = true;
 				draggedItem.ExtendClientAreaChromeHints = Avalonia.Platform.ExtendClientAreaChromeHints.NoChrome;
 				draggedItem.ShowInTaskbar = false;
@@ -451,7 +468,7 @@ namespace Sharp.DockManager
 
 			if (lastTrigger.control is null)
 			{
-				draggedItem.ExtendClientAreaToDecorationsHint = false;
+				//draggedItem.ExtendClientAreaToDecorationsHint = false;
 				draggedItem.Topmost = false;
 				draggedItem.Opacity = 1;
 				draggedItem.ShowInTaskbar = true;
