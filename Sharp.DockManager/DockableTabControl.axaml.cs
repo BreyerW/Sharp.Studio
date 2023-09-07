@@ -349,15 +349,15 @@ namespace Sharp.DockManager
 				hit = window.GetVisualAt(pos, c => c is not Border /*AdornerLayer.GetAdornedElement(c as Visual) is null*/) as Control;
 				if (hit is not null)
 				{
-					var d = hit.FindAncestorOfType<DockableTabControl>(true);
-					if (d is not null)
+					var targetDockable = hit.FindAncestorOfType<DockableTabControl>(true);
+					if (targetDockable is not null)
 					{
-						var dPos = e.GetPosition(d);
-						if (d.scroller.Bounds.Contains(dPos))
+						var dPos = e.GetPosition(targetDockable);
+						if (targetDockable.scroller.Bounds.Contains(dPos))
 						{
 							Control tab = null;
-							var scrollerPos = e.GetPosition(d.scroller);
-							foreach (var t in d.header.Panel.Children)
+							var scrollerPos = e.GetPosition(targetDockable.scroller);
+							foreach (var t in targetDockable.header.Panel.Children)
 							{
 								if (t.Bounds.Contains(scrollerPos))
 								{
@@ -367,13 +367,13 @@ namespace Sharp.DockManager
 							}
 							if (tab is not null)
 							{
-								var i = d.IndexFromContainer(tab);
+								var i = targetDockable.IndexFromContainer(tab);
 								draggedItem.Close();
 								sourceDockable._tabItems.Items.Remove(selectedItem.Value);
 								draggedItem = null;
-								d._tabItems.Items.Insert(i, selectedItem.Value);
-								d.SelectedItem = selectedItem.Value;
-								sourceDockable = d;
+								targetDockable._tabItems.Items.Insert(i, selectedItem.Value);
+								targetDockable.SelectedItem = selectedItem.Value;
+								sourceDockable = targetDockable;
 								//mousePosOffset = e.GetPosition(sourceDockable.scroller);//-s.TranslatePoint(default, scroller).GetValueOrDefault();
 								//screenMousePosOffset = t.PointToScreen(e.GetPosition(t)) - t.GetVisualParent().PointToScreen(t.Bounds.Position);
 								
@@ -395,17 +395,19 @@ namespace Sharp.DockManager
 						}
 						else
 						{
-							var posInBody = e.GetPosition(d.body);
-							if (posInBody.X >= 0 && posInBody.Y >= 0)
+							var posInBody = e.GetPosition(targetDockable.body);
+							if (posInBody is { X: >= 0, Y: >= 0 })
 							{
-								if (posInBody.X < d.body.Bounds.Width * 0.25)
-									currentTrigger = (d.body, Region.Left);
-								else if (posInBody.X > d.body.Bounds.Width * 0.75)
-									currentTrigger = (d.body, Region.Right);
-								else if (posInBody.X > d.body.Bounds.Width * 0.25 && posInBody.X < d.body.Bounds.Width * 0.75 && posInBody.Y < d.body.Bounds.Height * 0.5)
-									currentTrigger = (d.body, Region.Top);
+								if (posInBody.X < targetDockable.body.Bounds.Width * 0.25)
+									currentTrigger = (targetDockable.body, Region.Left);
+								else if (posInBody.X > targetDockable.body.Bounds.Width * 0.75)
+									currentTrigger = (targetDockable.body, Region.Right);
+								else if (posInBody.Y < targetDockable.body.Bounds.Height * 0.25)
+									currentTrigger = (targetDockable.body, Region.Top);
+								else if (posInBody.Y > targetDockable.body.Bounds.Height * 0.75)
+									currentTrigger = (targetDockable.body, Region.Bottom);
 								else
-									currentTrigger = (d.body, Region.Bottom);
+									currentTrigger = (targetDockable.body, Region.Center);
 							}
 							else
 								break;
@@ -413,7 +415,7 @@ namespace Sharp.DockManager
 					}
 					//Debug.WriteLine("area: " + currentTrigger.area);
 
-					var dControl = d.FindAncestorOfType<DockPanel>();
+					var dControl = targetDockable.FindAncestorOfType<DockPanel>();
 					if (dControl is null or { Children: null or { Count: 0 } })
 						break;
 					var adornerLayer = AdornerLayer.GetAdornerLayer(dControl);
@@ -421,27 +423,33 @@ namespace Sharp.DockManager
 					canvasParent?.Children.Remove(canvas);
 					adornerLayer.Children.Add(canvas);
 					AdornerLayer.SetAdornedElement(canvas, dControl);
-					var children = dControl.Children;
-					var index = children.IndexOf(d);
-					var dockUnderMouse = DockPanel.GetDock(d);
-					var stopIndex = PlaceDraggedItemIntoDockControl(dockUnderMouse, currentTrigger.area, index);
-					var arrangeSize = dControl.Bounds;
-					double accumulatedLeft = 0;
-					double accumulatedTop = 0;
-					double accumulatedRight = 0;
-					double accumulatedBottom = 0;
-
 					Rect rcChild = default;
 
-					for (int i = 0; i < stopIndex; ++i)
+					if (currentTrigger.area is Region.Center)
+						rcChild = new Rect(targetDockable.Bounds.TopLeft, targetDockable.Bounds.BottomRight);
+					else if(currentTrigger.area is not Region.None or Region.Invalid)
 					{
-						var child = children[i];
-						if (child == null)
-							continue;
-						CalculateArrangement(child, arrangeSize, ref accumulatedLeft, ref accumulatedRight, ref accumulatedTop, ref accumulatedBottom);
+						var children = dControl.Children;
+						var index = children.IndexOf(targetDockable);
+						var dockUnderMouse = DockPanel.GetDock(targetDockable);
+						var stopIndex = PlaceDraggedItemIntoDockControl(dockUnderMouse, currentTrigger.area, index);
+						var arrangeSize = dControl.Bounds;
+						double accumulatedLeft = 0;
+						double accumulatedTop = 0;
+						double accumulatedRight = 0;
+						double accumulatedBottom = 0;
+
+						for (int i = 0; i < stopIndex; ++i)
+						{
+							var child = children[i];
+							if (child == null)
+								continue;
+							CalculateArrangement(child, arrangeSize, ref accumulatedLeft, ref accumulatedRight, ref accumulatedTop, ref accumulatedBottom);
+						}
+						canvas.IsVisible = true;
+						rcChild = CalculateArrangement(sourceDockable, arrangeSize, ref accumulatedLeft, ref accumulatedRight, ref accumulatedTop, ref accumulatedBottom, dControl.LastChildFill && stopIndex == children.Count);
 					}
-					canvas.IsVisible = true;
-					rcChild = CalculateArrangement(sourceDockable, arrangeSize, ref accumulatedLeft, ref accumulatedRight, ref accumulatedTop, ref accumulatedBottom, dControl.LastChildFill && stopIndex == children.Count);
+						
 					adornedElement.Width = rcChild.Width;
 					adornedElement.Height = rcChild.Height;
 					Canvas.SetTop(adornedElement, rcChild.Top);
@@ -488,12 +496,13 @@ namespace Sharp.DockManager
 
 				var sourceDockControl = sourceDockable.FindAncestorOfType<DockControl>();
 				var targetDockable = lastTrigger.control.FindAncestorOfType<DockableTabControl>();
-				if (lastTrigger.control.Name is "PART_ItemsPresenter")
+				if (lastTrigger.control.Name is "PART_ItemsPresenter" || lastTrigger.area is Region.Center)
 				{
 					if (sourceDockable.VisualChildren.Count is 1)
 						sourceDockControl.Children.Remove(sourceDockable);
 					sourceDockable._tabItems.Items.Remove(selectedItem.Value);
 					targetDockable._tabItems.Items.Add(selectedItem.Value);
+					targetDockable.SelectedItem = selectedItem.Value;
 				}
 				else
 				{
@@ -562,6 +571,7 @@ namespace Sharp.DockManager
 			{
 				(_, Region.Center) => (index, dockUnderMouse),
 				(Dock.Left, Region.Right) => (index + 1, Dock.Left),
+				(Dock.Right, Region.Left) => (index + 1, Dock.Right),
 				(Dock.Right, Region.Right) or (Dock.Left, Region.Left) or (Dock.Top, Region.Top) or (Dock.Bottom, Region.Bottom) => (index, dockUnderMouse),
 				(Dock.Top, Region.Bottom) => (index + 1, Dock.Bottom),
 				(Dock.Bottom, Region.Top) => (index + 1, Dock.Top),
@@ -571,7 +581,7 @@ namespace Sharp.DockManager
 			};
 			((IDockable)sourceDockable).Dock = dock;
 			DockPanel.SetDock(sourceDockable, dock);
-			//Debug.WriteLine("docks: " + dockUnderMouse + " " + areaUnderMouse + " " + finalIndex + " " + targetChildrens.Count + " " + index);
+			Debug.WriteLine("docks: " + dockUnderMouse + " " + areaUnderMouse + " " + finalIndex + " " + index);
 			return finalIndex;
 		}
 		public void AddPage(Control header, Control content)
