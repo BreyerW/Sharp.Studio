@@ -33,7 +33,16 @@ using System.Threading.Tasks;
 
 namespace Sharp.DockManager
 {
-
+	enum Region
+	{
+		None,
+		Invalid,
+		Left,
+		Right,
+		Top,
+		Bottom,
+		Center
+	}
     public partial class DockableTabControl : TabControl, IStyleable, IDockable
     {
 		private const int animDuration = 200;
@@ -65,7 +74,7 @@ namespace Sharp.DockManager
 		};
 		private static Window draggedItem = null;
 		private static CancellationTokenSource cts = null;
-		private static (Control control, Dock? area) lastTrigger = default;
+		private static (Control control, Region area) lastTrigger = default;
 		private static DockableTabControl sourceDockable = null;
 		private static PixelPoint screenMousePosOffset;
 		private static Point mousePosOffset;
@@ -197,7 +206,7 @@ namespace Sharp.DockManager
 			canvas.IsVisible = false;
 			draggedItem = null;
 			selectedItem = null;
-			lastTrigger = (null, null);
+			lastTrigger = default;
 			mousePosOffset = default;
 			screenMousePosOffset = default;
 			e.Pointer.Capture(null);
@@ -313,7 +322,7 @@ namespace Sharp.DockManager
 					draggedItem.Height = Height;
 				}
 				draggedItem.Topmost = true;
-				draggedItem.SystemDecorations = SystemDecorations.BorderOnly;
+				//draggedItem.SystemDecorations = SystemDecorations.BorderOnly;
 				draggedItem.ExtendClientAreaToDecorationsHint = true;
 				draggedItem.ExtendClientAreaChromeHints = Avalonia.Platform.ExtendClientAreaChromeHints.NoChrome;
 				draggedItem.ShowInTaskbar = false;
@@ -326,7 +335,7 @@ namespace Sharp.DockManager
 			Point mousePos = e.GetPosition(draggedItem);
 			var screenPos = draggedItem.PointToScreen(mousePos);
 			draggedItem.Position = screenPos - screenMousePosOffset;
-			(Control control, Dock? area) currentTrigger = default;
+			(Control control, Region area) currentTrigger = default;
 
 			Control? hit = null;
 			foreach (var (window, zorder) in sortedWindows.OrderBy(key => key.Value))
@@ -379,9 +388,9 @@ namespace Sharp.DockManager
 							}
 							else
 							{
-								var posInHeader = e.GetPosition(d.header);
+								//var posInHeader = e.GetPosition(d.header);
 								//loop through all header children bounds.width and compare then decide left or right
-								currentTrigger = (d.scroller, Dock.Left);
+								currentTrigger = (null, Region.None);
 							}
 						}
 						else
@@ -390,13 +399,13 @@ namespace Sharp.DockManager
 							if (posInBody.X >= 0 && posInBody.Y >= 0)
 							{
 								if (posInBody.X < d.body.Bounds.Width * 0.25)
-									currentTrigger = (d.body, Dock.Left);
+									currentTrigger = (d.body, Region.Left);
 								else if (posInBody.X > d.body.Bounds.Width * 0.75)
-									currentTrigger = (d.body, Dock.Right);
+									currentTrigger = (d.body, Region.Right);
 								else if (posInBody.X > d.body.Bounds.Width * 0.25 && posInBody.X < d.body.Bounds.Width * 0.75 && posInBody.Y < d.body.Bounds.Height * 0.5)
-									currentTrigger = (d.body, Dock.Top);
+									currentTrigger = (d.body, Region.Top);
 								else
-									currentTrigger = (d.body, Dock.Bottom);
+									currentTrigger = (d.body, Region.Bottom);
 							}
 							else
 								break;
@@ -415,7 +424,7 @@ namespace Sharp.DockManager
 					var children = dControl.Children;
 					var index = children.IndexOf(d);
 					var dockUnderMouse = DockPanel.GetDock(d);
-					var stopIndex = GetTentativeStopIndex(dockUnderMouse, currentTrigger.area.Value, index);
+					var stopIndex = PlaceDraggedItemIntoDockControl(dockUnderMouse, currentTrigger.area, index);
 					var arrangeSize = dControl.Bounds;
 					double accumulatedLeft = 0;
 					double accumulatedTop = 0;
@@ -468,7 +477,7 @@ namespace Sharp.DockManager
 
 			if (lastTrigger.control is null)
 			{
-				//draggedItem.ExtendClientAreaToDecorationsHint = false;
+				draggedItem.ExtendClientAreaToDecorationsHint = false;
 				draggedItem.Topmost = false;
 				draggedItem.Opacity = 1;
 				draggedItem.ShowInTaskbar = true;
@@ -494,21 +503,17 @@ namespace Sharp.DockManager
 					if (sourceDockable.VisualChildren.Count is 1)
 					{
 						sourceDockControl.Children.Remove(sourceDockable);
-						/*if (index == targetDockControl.Children.Count-1 && lastTrigger.area is Dock.Right or Dock.Bottom)
-                            targetDockControl.Children.Add(sourceDockable);
-                        else*/
-						PlaceDraggedItemIntoDockControl(dockUnderMouse, lastTrigger.area.Value, targetDockControl.Children, index);
 					}
 					else
 					{
 						sourceDockable._tabItems.Items.Remove(selectedItem.Value);
 						var newTab = new DockableTabControl();
 						newTab._tabItems.Items.Add(selectedItem.Value);
-						/*if (index == targetDockControl.Children.Count-1 && lastTrigger.area is Dock.Right or Dock.Bottom)
-                            targetDockControl.Children.Add(newTab);
-                        else*/
-						PlaceDraggedItemIntoDockControl(dockUnderMouse, lastTrigger.area.Value, targetDockControl.Children, index);
+						sourceDockable = newTab;
 					}
+					var insertIndex = PlaceDraggedItemIntoDockControl(dockUnderMouse, lastTrigger.area, index);
+					targetDockControl.Children.Insert(insertIndex, sourceDockable);
+					
 				}
 			}
 		}
@@ -551,40 +556,22 @@ namespace Sharp.DockManager
 			return rcChild;
 		}
 		
-		private static int PlaceDraggedItemIntoDockControl(Dock dockUnderMouse, Dock areaUnderMouse, Controls targetChildrens, int index)
+		private static int PlaceDraggedItemIntoDockControl(Dock dockUnderMouse, Region areaUnderMouse, int index)
 		{
 			(int finalIndex, Dock dock) = (dockUnderMouse, areaUnderMouse) switch
 			{
-				(Dock.Left, Dock.Right) => (index + 1, Dock.Left),
-				(Dock.Right, Dock.Right) or (Dock.Left, Dock.Left) or (Dock.Top, Dock.Top) or (Dock.Bottom, Dock.Bottom) => (index, dockUnderMouse),
-				(Dock.Top, Dock.Bottom) or (Dock.Bottom, Dock.Top) => (index + 1, areaUnderMouse),
-				_ => (index, areaUnderMouse),
+				(_, Region.Center) => (index, dockUnderMouse),
+				(Dock.Left, Region.Right) => (index + 1, Dock.Left),
+				(Dock.Right, Region.Right) or (Dock.Left, Region.Left) or (Dock.Top, Region.Top) or (Dock.Bottom, Region.Bottom) => (index, dockUnderMouse),
+				(Dock.Top, Region.Bottom) => (index + 1, Dock.Bottom),
+				(Dock.Bottom, Region.Top) => (index + 1, Dock.Top),
+				(Dock.Left or Dock.Right, Region.Bottom) => (index, Dock.Bottom),
+				(Dock.Left or Dock.Right, Region.Top) => (index, Dock.Top),
+				_ => (index, dockUnderMouse)
 			};
-			var parent = sourceDockable;
-			targetChildrens.Insert(finalIndex, parent);
-			((IDockable)parent).Dock = dock;
-			DockPanel.SetDock(parent, dock);
+			((IDockable)sourceDockable).Dock = dock;
+			DockPanel.SetDock(sourceDockable, dock);
 			//Debug.WriteLine("docks: " + dockUnderMouse + " " + areaUnderMouse + " " + finalIndex + " " + targetChildrens.Count + " " + index);
-			return finalIndex;
-		}
-		private static int GetTentativeStopIndex(Dock dockUnderMouse, Dock areaUnderMouse, int index)
-		{
-			(int finalIndex, Dock dock) = (dockUnderMouse, areaUnderMouse) switch
-			{
-				(Dock.Left, Dock.Right) => (index + 1, Dock.Left),
-				(Dock.Right, Dock.Right) or (Dock.Left, Dock.Left) or (Dock.Top, Dock.Top) or (Dock.Bottom, Dock.Bottom) => (index, dockUnderMouse),
-				(Dock.Top, Dock.Bottom) or (Dock.Bottom, Dock.Top) => (index + 1, areaUnderMouse),
-				_ => (index, areaUnderMouse),
-			};
-			var parent = sourceDockable;
-			//TODO fix this this shouldnt be possible
-			/*if (parent is null)
-			{
-				parent = new DockableTabControl();
-				parent._tabItems.Add(selectedTab);
-			}*/
-			((IDockable)parent).Dock = dock;
-			DockPanel.SetDock(parent, dock);
 			return finalIndex;
 		}
 		public void AddPage(Control header, Control content)
