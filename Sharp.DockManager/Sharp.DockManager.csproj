@@ -16,8 +16,5 @@
     <Compile Update="DockableTabControl.axaml.cs">
       <DependentUpon>DockableTabControl.axaml</DependentUpon>
     </Compile>
-    <Compile Update="DockControl.axaml.cs">
-      <DependentUpon>DockControl.axaml</DependentUpon>
-    </Compile>
   </ItemGroup>
 </Project>

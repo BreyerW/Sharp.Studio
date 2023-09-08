@@ -12,23 +12,10 @@
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
-  <!--<Grid Name="Grid">
-    <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="1*"  MinWidth="100"/>
-      <ColumnDefinition Width="Auto" />
-      <ColumnDefinition Width="1*" MinWidth="100"/>
-      <ColumnDefinition Width="Auto" />
-      <ColumnDefinition Width="1*" MinWidth="100"/>
-    </Grid.ColumnDefinitions>
-    <TextBlock Grid.Column="0" Text="test text"/>
-    <GridSplitter Background="Red" Grid.Column="1" ResizeBehavior="PreviousAndNext" VerticalAlignment="Stretch" HorizontalAlignment="Center" Width="5"/>
-    <TextBlock Grid.Column="2" Text="test text"/>
-    <GridSplitter Background="Red" Grid.Column="3"  ResizeBehavior="PreviousAndNext" VerticalAlignment="Stretch" HorizontalAlignment="Center" Width="5"/>
-    <TextBlock Grid.Column="4" Text="test text"/>
-  </Grid>-->
 
-  <dc:DockControl Name="dockControl">
+
+  <DockPanel Name="dockControl">
     
-  </dc:DockControl>
+  </DockPanel>
 
 </Window>

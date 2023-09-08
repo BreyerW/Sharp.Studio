@@ -18,9 +18,7 @@
       
     <Setter Property="Template">
         <ControlTemplate>
-          <Grid RowDefinitions="*,*" ColumnDefinitions="*,*">
-          <DockPanel Grid.Column="0" Grid.Row="0" Grid.RowSpan="2" Grid.ColumnSpan="2" Name="panel">
-            
+          <DockPanel Name="panel" LastChildFill="true">
             <Grid DockPanel.Dock="{TemplateBinding TabStripPlacement}">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -42,7 +40,6 @@
               Content="{TemplateBinding SelectedItem}"
               ContentTemplate="{TemplateBinding ContentTemplate}"/>
           </DockPanel>
-          </Grid>
         </ControlTemplate>
       </Setter>
       <Setter Property="ItemsPanel">

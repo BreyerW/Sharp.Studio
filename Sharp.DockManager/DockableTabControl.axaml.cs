@@ -97,7 +97,7 @@ namespace Sharp.DockManager
 		private static void UpdateZOrder()
 		{
 			var index = 0;
-			test.EnumWindows((wnd, param) =>
+			Helpers.EnumWindows((wnd, param) =>
 			{
 				var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
 				foreach (var wind in lifetime.Windows)
@@ -135,6 +135,91 @@ namespace Sharp.DockManager
 			adornedElement.Opacity = 0.33;
 			adornedElement.IsVisible = true;
 			canvas.Children.Add(adornedElement);
+		}
+		private static Grid GridFactory() => new Grid() { RowDefinitions = new("*,Auto,*"), ColumnDefinitions = new("*,Auto,*") };
+		private static GridSplitter SplitterFactory(int width=0,int height=0){
+			var isColumn = width > height;	
+		var splitter = new GridSplitter()
+			{
+				Width = width,
+				Height = height,
+				ResizeDirection = isColumn ? GridResizeDirection.Columns : GridResizeDirection.Rows
+			};
+			if (isColumn)
+			{
+				SetAsColumn(splitter, 1);
+			}
+			else
+			{
+				SetAsRow(splitter, 1);
+			}
+			return splitter;
+		}
+		private static void SetAsColumn(Control c, int column)
+		{
+			Grid.SetRow(c, 0);
+			Grid.SetColumn(c, column);
+			Grid.SetRowSpan(c, 3);
+		}
+		private static void SetAsRow(Control c, int row)
+		{
+			Grid.SetRow(c, row);
+			Grid.SetColumn(c, 0);
+			Grid.SetColumnSpan(c, 3);
+		}
+		private static bool SplitTabControl(Control existing, Control added, Dock dockForAdded)
+		{
+		
+			var grid=GridFactory();
+			
+			var success=existing.ReplaceChild(grid);
+			if (success)
+			{
+				var width = 0;
+				var height = 2;
+				if (dockForAdded is Dock.Left or Dock.Right)
+				{
+					width = 2;
+					height = 0;
+				}
+
+				var splitter = SplitterFactory(width, height);
+				if (dockForAdded is Dock.Left or Dock.Top)
+				{
+					grid.Children.Add(added);
+					grid.Children.Add(existing);
+				}
+				else
+				{
+					grid.Children.Add(existing);
+					grid.Children.Add(added);
+				}
+
+				if (dockForAdded is Dock.Left)
+				{
+					SetAsColumn(added, 0);
+					SetAsColumn(existing, 2);
+				}
+				else if (dockForAdded is Dock.Right)
+				{
+					SetAsColumn(added, 2);
+					SetAsColumn(existing, 0);
+				}
+				else if (dockForAdded is Dock.Top)
+				{
+					SetAsRow(added, 0);
+					SetAsRow(existing, 2);
+				}
+				else
+				{
+					SetAsRow(added, 2);
+					SetAsRow(existing, 0);
+				}
+				grid.Children.Insert(1,splitter);
+				return true;
+			}
+			else
+				return false;
 		}
 		public DockableTabControl()
 		{
@@ -268,7 +353,7 @@ namespace Sharp.DockManager
 				selectedItem = new LinkedListNode<DockableItem>(selectedItem.Value);
 				UpdateZOrder();
 				
-				var panel = sourceDockable.FindAncestorOfType<DockControl>();
+				var panel = sourceDockable.FindAncestorOfType<DockPanel>();
 				var attachedToWin = panel.FindAncestorOfType<Window>();
 				var Width = sourceDockable.Bounds.Width;
 				var Height = sourceDockable.Bounds.Height;
@@ -312,11 +397,11 @@ namespace Sharp.DockManager
 				{
 					draggedItem = new Window();
 					draggedItem.Show();
-					var docker = new DockControl();
+					var docker = new DockPanel();
 					var tab = new DockableTabControl() { Dock = Dock.Left };
 					tab._tabItems.Items.Add(selectedItem.Value);
 					sourceDockable = tab;
-					docker.StartWithDocks(new[] { tab });
+					docker.Children.Add(tab);
 					draggedItem.Content = docker;
 					draggedItem.Width = Width;
 					draggedItem.Height = Height;
@@ -494,7 +579,7 @@ namespace Sharp.DockManager
 			{
 				draggedItem.Close();
 
-				var sourceDockControl = sourceDockable.FindAncestorOfType<DockControl>();
+				var sourceDockControl = sourceDockable.FindAncestorOfType<DockPanel>();
 				var targetDockable = lastTrigger.control.FindAncestorOfType<DockableTabControl>();
 				if (lastTrigger.control.Name is "PART_ItemsPresenter" || lastTrigger.area is Region.Center)
 				{
@@ -506,7 +591,7 @@ namespace Sharp.DockManager
 				}
 				else
 				{
-					var targetDockControl = targetDockable.FindAncestorOfType<DockControl>();
+					var targetDockControl = targetDockable.FindAncestorOfType<DockPanel>();
 					var index = targetDockControl.Children.IndexOf(targetDockable);
 					var dockUnderMouse = DockPanel.GetDock(targetDockControl.Children[index] as Control);
 					if (sourceDockable.VisualChildren.Count is 1)

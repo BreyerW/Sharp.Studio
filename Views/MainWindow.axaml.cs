@@ -27,7 +27,7 @@ namespace Sharp.Studio.Views
             var inspectorView1 = new DockableTabControl() { IsVisible = true, Dock = Dock.Right };
             //inspectorView1.AddPage(new TabItem() { Header = null , Content = null });
 
-            dockControl.StartWithDocks(new[] { sceneView, assetsView, inspectorView });
+            dockControl.Children.AddRange(new[] { sceneView, assetsView, inspectorView });
 
         }
 
