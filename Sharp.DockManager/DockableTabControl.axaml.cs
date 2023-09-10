@@ -30,6 +30,7 @@ using System.Runtime.InteropServices;
 using Avalonia.Threading;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Markup.Xaml.Templates;
 
 namespace Sharp.DockManager
 {
@@ -113,13 +114,15 @@ namespace Sharp.DockManager
 				if(s.IsAnimating(Helpers.TabItemXProperty))
 					s.Arrange(s.Bounds.WithX(e.GetNewValue<double>()));
 			});
-			InputElement.PointerPressedEvent.AddClassHandler<Interactive>((s, e) =>
+			InputElement.PointerPressedEvent.AddClassHandler<TabItem>((s, e) =>
 			{
 				PointerPressed(e);
 				e.Handled = true;
 			});
 			InputElement.PointerMovedEvent.AddClassHandler<Interactive>((s, e) =>
 			{
+				if (selectedItem is null)
+					return;
 				PointerMoved(e);
 				if(draggedItem is not null)
 					DoDrag(e);
@@ -127,6 +130,8 @@ namespace Sharp.DockManager
 			});
 			InputElement.PointerReleasedEvent.AddClassHandler<Interactive>((s, e) =>
 			{
+				if (selectedItem is null)
+					return;
 				DropTab(e);
 				DropFinished(e);
 				e.Handled = true;
@@ -136,16 +141,16 @@ namespace Sharp.DockManager
 			adornedElement.IsVisible = true;
 			canvas.Children.Add(adornedElement);
 		}
-		private static Grid GridFactory() => new Grid() { RowDefinitions = new("*,Auto,*"), ColumnDefinitions = new("*,Auto,*") };
-		private static GridSplitter SplitterFactory(int width=0,int height=0){
-			var isColumn = width > height;	
-		var splitter = new GridSplitter()
+		private static Grid GridFactory() => new Grid() {RowDefinitions = new("*,Auto,*"), ColumnDefinitions = new("*,Auto,*") };
+		private static GridSplitter SplitterFactory(double thickness, bool column)
+		{
+			var splitter = new GridSplitter()
 			{
-				Width = width,
-				Height = height,
-				ResizeDirection = isColumn ? GridResizeDirection.Columns : GridResizeDirection.Rows
+				Width = column ? thickness : double.NaN,
+				Height = column ? double.NaN : thickness,
+				ResizeDirection = column ? GridResizeDirection.Columns : GridResizeDirection.Rows
 			};
-			if (isColumn)
+			if (column)
 			{
 				SetAsColumn(splitter, 1);
 			}
@@ -158,54 +163,44 @@ namespace Sharp.DockManager
 		private static void SetAsColumn(Control c, int column)
 		{
 			Grid.SetRow(c, 0);
-			Grid.SetColumn(c, column);
 			Grid.SetRowSpan(c, 3);
+			Grid.SetColumn(c, column);
+			Grid.SetColumnSpan(c, 1);
 		}
 		private static void SetAsRow(Control c, int row)
 		{
 			Grid.SetRow(c, row);
+			Grid.SetRowSpan(c, 1);
 			Grid.SetColumn(c, 0);
 			Grid.SetColumnSpan(c, 3);
 		}
-		private static bool SplitTabControl(Control existing, Control added, Dock dockForAdded)
+		private static bool SplitTabControl(Control existing, Control added, Region dockForAdded)
 		{
-		
 			var grid=GridFactory();
 			
-			var success=existing.ReplaceChild(grid);
+			var success=existing.ReplaceWith(grid);
 			if (success)
 			{
-				var width = 0;
-				var height = 2;
-				if (dockForAdded is Dock.Left or Dock.Right)
-				{
-					width = 2;
-					height = 0;
-				}
+				Grid.SetColumn(grid, Grid.GetColumn(existing));
+				Grid.SetColumnSpan(grid, Grid.GetColumnSpan(existing));
+				Grid.SetRow(grid, Grid.GetRow(existing));
+				Grid.SetRowSpan(grid, Grid.GetRowSpan(existing));
+				var splitter = SplitterFactory(2, dockForAdded is Region.Left or Region.Right);
+				grid.Children.Add(existing);
+				grid.Children.Add(splitter);
+				grid.Children.Add(added);
 
-				var splitter = SplitterFactory(width, height);
-				if (dockForAdded is Dock.Left or Dock.Top)
-				{
-					grid.Children.Add(added);
-					grid.Children.Add(existing);
-				}
-				else
-				{
-					grid.Children.Add(existing);
-					grid.Children.Add(added);
-				}
-
-				if (dockForAdded is Dock.Left)
+				if (dockForAdded is Region.Left)
 				{
 					SetAsColumn(added, 0);
 					SetAsColumn(existing, 2);
 				}
-				else if (dockForAdded is Dock.Right)
+				else if (dockForAdded is Region.Right)
 				{
 					SetAsColumn(added, 2);
 					SetAsColumn(existing, 0);
 				}
-				else if (dockForAdded is Dock.Top)
+				else if (dockForAdded is Region.Top)
 				{
 					SetAsRow(added, 0);
 					SetAsRow(existing, 2);
@@ -215,7 +210,7 @@ namespace Sharp.DockManager
 					SetAsRow(added, 2);
 					SetAsRow(existing, 0);
 				}
-				grid.Children.Insert(1,splitter);
+				
 				return true;
 			}
 			else
@@ -226,26 +221,8 @@ namespace Sharp.DockManager
 			InitializeComponent();
 			ItemsSource = _tabItems.Items;
 			//DataContext = _tabItems.Items;
-			Dock = Dock.Left;
+			//Dock = Dock.Left;
 			Background = Brushes.Transparent;
-		}
-		private static DockSplitter CreateSplitter(Dock dockPos)
-		{
-			var gridSplitter = new DockSplitter();
-			if (dockPos is Dock.Left or Dock.Right)
-			{
-				gridSplitter.Width = 5;
-				gridSplitter.HorizontalAlignment = HorizontalAlignment.Center;
-				gridSplitter.VerticalAlignment = VerticalAlignment.Stretch;
-			}
-			else
-			{
-				gridSplitter.Height = 5;
-				gridSplitter.HorizontalAlignment = HorizontalAlignment.Stretch;
-				gridSplitter.VerticalAlignment = VerticalAlignment.Center;
-			}
-			gridSplitter.Background = new SolidColorBrush(Colors.Red);
-			return gridSplitter;
 		}
 		private static void PointerPressed(PointerPressedEventArgs e)
 		{
@@ -342,9 +319,6 @@ namespace Sharp.DockManager
 						
 						await swapAnimation.RunAsync(tabToBeAnimated, cts.Token);
 
-						//catch(TaskCanceledException){
-							//tabToBeAnimated.GetLogicalParent<Panel>().InvalidateArrange();
-						//}
 					}
 					return;
 				}
@@ -397,12 +371,10 @@ namespace Sharp.DockManager
 				{
 					draggedItem = new Window();
 					draggedItem.Show();
-					var docker = new DockPanel();
 					var tab = new DockableTabControl() { Dock = Dock.Left };
 					tab._tabItems.Items.Add(selectedItem.Value);
 					sourceDockable = tab;
-					docker.Children.Add(tab);
-					draggedItem.Content = docker;
+					draggedItem.Content = tab;
 					draggedItem.Width = Width;
 					draggedItem.Height = Height;
 				}
@@ -435,11 +407,13 @@ namespace Sharp.DockManager
 				if (hit is not null)
 				{
 					var targetDockable = hit.FindAncestorOfType<DockableTabControl>(true);
+					
 					if (targetDockable is not null)
 					{
 						var dPos = e.GetPosition(targetDockable);
 						if (targetDockable.scroller.Bounds.Contains(dPos))
 						{
+						
 							Control tab = null;
 							var scrollerPos = e.GetPosition(targetDockable.scroller);
 							foreach (var t in targetDockable.header.Panel.Children)
@@ -459,9 +433,7 @@ namespace Sharp.DockManager
 								targetDockable._tabItems.Items.Insert(i, selectedItem.Value);
 								targetDockable.SelectedItem = selectedItem.Value;
 								sourceDockable = targetDockable;
-								//mousePosOffset = e.GetPosition(sourceDockable.scroller);//-s.TranslatePoint(default, scroller).GetValueOrDefault();
-								//screenMousePosOffset = t.PointToScreen(e.GetPosition(t)) - t.GetVisualParent().PointToScreen(t.Bounds.Position);
-								
+
 								foreach (var item in sourceDockable._tabItems.Items)
 								{
 									var node = virtualOrderOfChildren.AddLast(item);
@@ -473,8 +445,6 @@ namespace Sharp.DockManager
 							}
 							else
 							{
-								//var posInHeader = e.GetPosition(d.header);
-								//loop through all header children bounds.width and compare then decide left or right
 								currentTrigger = (null, Region.None);
 							}
 						}
@@ -496,25 +466,43 @@ namespace Sharp.DockManager
 							}
 							else
 								break;
+							
+
 						}
-					}
-					//Debug.WriteLine("area: " + currentTrigger.area);
 
-					var dControl = targetDockable.FindAncestorOfType<DockPanel>();
-					if (dControl is null or { Children: null or { Count: 0 } })
-						break;
-					var adornerLayer = AdornerLayer.GetAdornerLayer(dControl);
-					var canvasParent = canvas.GetLogicalParent<AdornerLayer>();
-					canvasParent?.Children.Remove(canvas);
-					adornerLayer.Children.Add(canvas);
-					AdornerLayer.SetAdornedElement(canvas, dControl);
-					Rect rcChild = default;
+						//Debug.WriteLine("area: " + currentTrigger.area);
 
-					if (currentTrigger.area is Region.Center)
-						rcChild = new Rect(targetDockable.Bounds.TopLeft, targetDockable.Bounds.BottomRight);
-					else if(currentTrigger.area is not Region.None or Region.Invalid)
-					{
-						var children = dControl.Children;
+						//var dControl = targetDockable.FindAncestorOfType<DockPanel>();
+						//if (dControl is null or { Children: null or { Count: 0 } })
+						//break;
+
+						
+						if (currentTrigger.area is not Region.None or Region.Invalid)
+						{
+							var adornerLayer = AdornerLayer.GetAdornerLayer(targetDockable);
+							var canvasParent = canvas.GetLogicalParent<AdornerLayer>();
+							canvasParent?.Children.Remove(canvas);
+							adornerLayer.Children.Add(canvas);
+							AdornerLayer.SetAdornedElement(canvas, targetDockable);
+							canvas.IsVisible = true;
+							adornedElement.IsVisible = true;
+
+							var leftTop = new Point(0,0);
+							var leftMid = new Point(0, targetDockable.Bounds.Height / 2);
+							var rightMid = leftMid.WithX(targetDockable.Bounds.Width);
+							var topMid = new Point(targetDockable.Bounds.Width / 2, 0);
+							var bottomMid = topMid.WithY(targetDockable.Bounds.Height);
+							var bottomRight = new Point(targetDockable.Bounds.Width, targetDockable.Bounds.Height);
+						
+							var rcChild = currentTrigger.area switch
+							{
+								Region.Left => new Rect(leftTop, bottomMid),
+								Region.Right => new Rect(topMid, bottomRight),
+								Region.Top => new Rect(leftTop, rightMid),
+								Region.Bottom => new Rect(leftMid, bottomRight),
+								Region.Center => new Rect(leftTop, bottomRight),
+							};
+						/*var children = dControl.Children;
 						var index = children.IndexOf(targetDockable);
 						var dockUnderMouse = DockPanel.GetDock(targetDockable);
 						var stopIndex = PlaceDraggedItemIntoDockControl(dockUnderMouse, currentTrigger.area, index);
@@ -532,14 +520,15 @@ namespace Sharp.DockManager
 							CalculateArrangement(child, arrangeSize, ref accumulatedLeft, ref accumulatedRight, ref accumulatedTop, ref accumulatedBottom);
 						}
 						canvas.IsVisible = true;
-						rcChild = CalculateArrangement(sourceDockable, arrangeSize, ref accumulatedLeft, ref accumulatedRight, ref accumulatedTop, ref accumulatedBottom, dControl.LastChildFill && stopIndex == children.Count);
+						rcChild = CalculateArrangement(sourceDockable, arrangeSize, ref accumulatedLeft, ref accumulatedRight, ref accumulatedTop, ref accumulatedBottom, dControl.LastChildFill && stopIndex == children.Count);*/
+							adornedElement.Width = rcChild.Width;
+							adornedElement.Height = rcChild.Height;
+							Canvas.SetTop(adornedElement, rcChild.Top);
+							Canvas.SetLeft(adornedElement, rcChild.Left);
+							Debug.WriteLine("target: " + rcChild);
+						}
+						break;
 					}
-						
-					adornedElement.Width = rcChild.Width;
-					adornedElement.Height = rcChild.Height;
-					Canvas.SetTop(adornedElement, rcChild.Top);
-					Canvas.SetLeft(adornedElement, rcChild.Left);
-					break;
 				}
 			}
 			if (currentTrigger.control is null)
@@ -575,28 +564,26 @@ namespace Sharp.DockManager
 				draggedItem.Opacity = 1;
 				draggedItem.ShowInTaskbar = true;
 			}
-			else
+			else if(lastTrigger.area is not Region.Invalid or Region.None)
 			{
 				draggedItem.Close();
 
-				var sourceDockControl = sourceDockable.FindAncestorOfType<DockPanel>();
 				var targetDockable = lastTrigger.control.FindAncestorOfType<DockableTabControl>();
 				if (lastTrigger.control.Name is "PART_ItemsPresenter" || lastTrigger.area is Region.Center)
 				{
-					if (sourceDockable.VisualChildren.Count is 1)
-						sourceDockControl.Children.Remove(sourceDockable);
+					draggedItem.Content = null;
 					sourceDockable._tabItems.Items.Remove(selectedItem.Value);
 					targetDockable._tabItems.Items.Add(selectedItem.Value);
 					targetDockable.SelectedItem = selectedItem.Value;
 				}
 				else
 				{
-					var targetDockControl = targetDockable.FindAncestorOfType<DockPanel>();
-					var index = targetDockControl.Children.IndexOf(targetDockable);
-					var dockUnderMouse = DockPanel.GetDock(targetDockControl.Children[index] as Control);
+					//var targetDockControl = targetDockable.FindAncestorOfType<DockPanel>();
+					//var index = targetDockControl.Children.IndexOf(targetDockable);
+					//var dockUnderMouse = DockPanel.GetDock(targetDockControl.Children[index] as Control);
 					if (sourceDockable.VisualChildren.Count is 1)
 					{
-						sourceDockControl.Children.Remove(sourceDockable);
+						draggedItem.Content = null;
 					}
 					else
 					{
@@ -605,9 +592,9 @@ namespace Sharp.DockManager
 						newTab._tabItems.Items.Add(selectedItem.Value);
 						sourceDockable = newTab;
 					}
-					var insertIndex = PlaceDraggedItemIntoDockControl(dockUnderMouse, lastTrigger.area, index);
-					targetDockControl.Children.Insert(insertIndex, sourceDockable);
-					
+					//var insertIndex = PlaceDraggedItemIntoDockControl(dockUnderMouse, lastTrigger.area, index);
+					//targetDockControl.Children.Insert(insertIndex, sourceDockable);
+					SplitTabControl(targetDockable,sourceDockable, lastTrigger.area);
 				}
 			}
 		}
@@ -669,7 +656,7 @@ namespace Sharp.DockManager
 			Debug.WriteLine("docks: " + dockUnderMouse + " " + areaUnderMouse + " " + finalIndex + " " + index);
 			return finalIndex;
 		}
-		public void AddPage(Control header, Control content)
+		/*public void AddPage(Control header, Control content)
         {
             /*if (item.Header is string)
             {
@@ -677,9 +664,9 @@ namespace Sharp.DockManager
                 var panel = new StackPanel() { Orientation = Orientation.Horizontal };
                 panel.Children.Add(new Button() { Content = copy });
                 item.Header = panel;
-            }*/
-            _tabItems.Items.Add(new DockableItem() { Header = header, Content = content});
-        }
+            }*
+			_tabItems.Items.Add(new DockableItem() { Header = header, Content = content});
+        }*/
     }
 }
 /*

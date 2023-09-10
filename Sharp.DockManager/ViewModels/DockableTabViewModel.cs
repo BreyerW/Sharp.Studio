@@ -9,14 +9,8 @@ using System.Threading.Tasks;
 
 namespace Sharp.DockManager.ViewModels
 {
-    public class DockableTabViewModel : ViewModelBase
+	public class DockableTabViewModel : ViewModelBase
     {
         public ObservableCollection<DockableItem> Items { get; set; } = new();
-    }
-    public class DockableItem: AvaloniaObject
-    {
-		public Control Header { get; set; }
-        public Control Content { get; set; }
-
     }
 }

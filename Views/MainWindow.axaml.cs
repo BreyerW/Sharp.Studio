@@ -8,11 +8,10 @@ namespace Sharp.Studio.Views
 {
     public partial class MainWindow : Window
     {
-        //private DockControl dockControl;
         public MainWindow()
         {
             InitializeComponent();
-            var assetsView = new DockableTabControl() { Dock = Dock.Left, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
+           /* var assetsView = new DockableTabControl() { Dock = Dock.Left, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
             assetsView.AddPage(new TextBlock() { Text = nameof(AssetsView) },  new AssetsView() );
             //var assetsView1 = new DockableTabControl() { Dock = Dock.Right};
             // assetsView1.AddPage(new TabItem() { Header = new TextBlock() { Text = nameof(AssetsView) }, Content = new AssetsView() });
@@ -28,7 +27,7 @@ namespace Sharp.Studio.Views
             //inspectorView1.AddPage(new TabItem() { Header = null , Content = null });
 
             dockControl.Children.AddRange(new[] { sceneView, assetsView, inspectorView });
-
+            */
         }
 
         

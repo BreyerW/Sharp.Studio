@@ -2,6 +2,8 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -20,14 +22,18 @@ namespace Sharp.DockManager
 			first.List.Remove(first);
 			second.List.AddAfter(second, first);
 		}
-		public static bool ReplaceChild(this Control toBeReplaced, Control replacement)
+		public static bool ReplaceWith(this Control toBeReplaced, Control replacement)
 		{
 			var parent = toBeReplaced.GetLogicalParent();
 			if (parent is Panel p)
 			{
-				p.Children.Remove(toBeReplaced);
-				p.Children.Add(replacement);
-				return true;
+				var i = p.Children.IndexOf(toBeReplaced);
+				if (i > -1)
+				{
+					p.Children[i] = replacement;
+					return true;
+				}
+				return false;
 			}
 			else if (parent is ContentControl cc)
 			{
@@ -45,6 +51,14 @@ namespace Sharp.DockManager
 				return true;
 			}
 			return false;
+		}
+		public static T FindAncestorOfTypeAndName<T>(this Control c, string name, bool includeSelf = false) where T: Control
+		{
+			var found = c.FindAncestorOfType<T>(includeSelf);
+			while (found is not null && found.Name != name)
+			//do not include includeSelf here to prevent infinite loop
+				found = found.FindAncestorOfType<T>();
+			return found;
 		}
 		internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 

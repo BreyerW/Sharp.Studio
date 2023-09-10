@@ -24,10 +24,10 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
               </Grid.ColumnDefinitions>
-              <ScrollViewer Name="scroller"  HorizontalAlignment="Stretch"
+              <ScrollViewer Name="scroller" HorizontalAlignment="Stretch" Background="Transparent"
                     HorizontalScrollBarVisibility="Hidden">
 
-                <ItemsPresenter 
+                <ItemsPresenter
                         Name="PART_ItemsPresenter"
                         ItemsPanel="{TemplateBinding ItemsPanel}"
 												/>
