@@ -8,7 +8,7 @@ namespace Sharp.Studio.Models
 	{
 		public DockableAssets()
 		{
-			Header = new TextBlock() { Text="Assets" };
+			Header = new CloseableHeader() { Text="Assets"};
 			Content = new AssetsView();
 		}
 	}

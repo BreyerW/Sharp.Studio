@@ -15,4 +15,9 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
     <PackageReference Include="SharpHook" Version="5.0.0" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Views\CloseableHeader.axaml.cs">
+      <DependentUpon>CloseableHeader.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
 </Project>

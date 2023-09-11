@@ -7,7 +7,7 @@
              xmlns:dt="using:Sharp.DockManager"
              xmlns:behaviours="using:Sharp.DockManager.Behaviours"
 			 x:Class="Sharp.Studio.App"
-			 RequestedThemeVariant="Default">
+			 RequestedThemeVariant="Dark">
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
