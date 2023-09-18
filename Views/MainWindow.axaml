@@ -17,6 +17,9 @@
     </Design.DataContext>
 
   <dc:DockableTabControl>
+    <dc:DockableTabControl.OptionalHeaderAttachment>
+      <Button Content="+"/>
+    </dc:DockableTabControl.OptionalHeaderAttachment>
       <dc:DockableTabControl.ItemsSource>
         <m:DockableAssets/>
         <m:DockableAssets/>

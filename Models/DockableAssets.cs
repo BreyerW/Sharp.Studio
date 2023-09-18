@@ -9,7 +9,13 @@ namespace Sharp.Studio.Models
 		public DockableAssets()
 		{
 			Header = new CloseableHeader() { Text="Assets"};
+			Header.PointerPressed += Header_PointerPressed;
 			Content = new AssetsView();
+		}
+
+		private void Header_PointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+		{
+			//e.Handled = true;
 		}
 	}
 }

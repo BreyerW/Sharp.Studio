@@ -3,6 +3,7 @@
              xmlns:s="using:System"
 			 xmlns:local="using:Sharp.Studio"
              xmlns:v="using:Sharp.Studio.Views"
+             xmlns:vm="using:Sharp.DockManager.Models"
              xmlns:vms="using:Sharp.DockManager.ViewModels"
              xmlns:dt="using:Sharp.DockManager"
              xmlns:behaviours="using:Sharp.DockManager.Behaviours"
@@ -12,12 +13,16 @@
         <local:ViewLocator/>
     </Application.DataTemplates>
   <Application.Resources>
-    <ControlTemplate x:Key="AssetsHeader">
-              <TextBlock Text="Assets"/>
-      </ControlTemplate>
-    <ControlTemplate x:Key="AssetsView">
-              <v:AssetsView/>
-          </ControlTemplate>
+    <DataTemplate x:Key="AssetsDock">
+      <vms:DockableItem>
+        <vms:DockableItem.Header>
+          <TextBlock Text="Assets"/>
+        </vms:DockableItem.Header>
+        <vms:DockableItem.Content>
+          <v:AssetsView/>
+        </vms:DockableItem.Content>
+      </vms:DockableItem>
+    </DataTemplate>
   </Application.Resources>
     <Application.Styles>
       
