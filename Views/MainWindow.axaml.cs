@@ -11,8 +11,8 @@ namespace Sharp.Studio.Views
         public MainWindow()
         {
             InitializeComponent();
-            DockableTabControl.HideContentWhenDrag = true;
-            DockableTabControl.ConfigureNewDockable += (s,source)=> { 
+            DockableControl.HideContentWhenDrag = true;
+            DockableControl.ConfigureNewDockable += (s,source)=> { 
             
             };
 		}

@@ -6,7 +6,7 @@
              xmlns:vms="using:Sharp.DockManager.ViewModels"
              xmlns:behaviours="using:Sharp.DockManager.Behaviours"
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"  
-             x:Class="Sharp.DockManager.DockableTabControl"
+             x:Class="Sharp.DockManager.DockableControl"
             
 			 
 			 >
@@ -122,8 +122,8 @@
         <Setter Property="HorizontalContentAlignment" Value="Right" />
       </Style>
     </ControlTheme>
-    <ControlTheme TargetType="dt:DockableTabControl"
-        x:Key="{x:Type dt:DockableTabControl}">
+    <ControlTheme TargetType="dt:DockableControl"
+        x:Key="{x:Type dt:DockableControl}">
       
     <Setter Property="Template">
       

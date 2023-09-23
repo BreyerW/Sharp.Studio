@@ -62,7 +62,7 @@ namespace Sharp.DockManager
 				d.Child = replacement;
 			}
 			else
-				DockableTabControl.ReplaceControlRequested(toBeReplaced,replacement);
+				DockableControl.ReplaceControlRequested(toBeReplaced,replacement);
 		}
 
 		internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);

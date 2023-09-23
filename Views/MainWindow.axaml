@@ -11,24 +11,20 @@
         x:Class="Sharp.Studio.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
         Title="Sharp.Studio">
-
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
-
-  <dc:DockableTabControl>
-    <dc:DockableTabControl.OptionalHeaderAttachment>
+  <dc:DockableControl>
+    <dc:DockableControl.OptionalHeaderAttachment>
       <Button Content="+"/>
-    </dc:DockableTabControl.OptionalHeaderAttachment>
-      <dc:DockableTabControl.ItemsSource>
+    </dc:DockableControl.OptionalHeaderAttachment>
+      <dc:DockableControl.ItemsSource>
         <m:DockableAssets/>
         <m:DockableAssets/>
         <m:DockableScene/>
         <m:DockableAssets/>
         <m:DockableAssets/>
         <m:DockableScene/>
-      </dc:DockableTabControl.ItemsSource>
-    </dc:DockableTabControl>
-
-
+      </dc:DockableControl.ItemsSource>
+    </dc:DockableControl>
 </Window>

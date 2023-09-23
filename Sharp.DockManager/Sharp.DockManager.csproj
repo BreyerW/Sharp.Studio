@@ -13,8 +13,11 @@
     <PackageReference Include="SharpHook" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="DockableTabControl.axaml.cs">
-      <DependentUpon>DockableTabControl.axaml</DependentUpon>
+    <Compile Update="DockableControl.axaml.cs">
+      <DependentUpon>DockableControl.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="DockableControl.axaml.cs">
+      <DependentUpon>DockableControl.axaml</DependentUpon>
     </Compile>
   </ItemGroup>
 </Project>
