@@ -14,10 +14,7 @@
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
-  <dc:DockableControl>
-    <dc:DockableControl.OptionalHeaderAttachment>
-      <Button Content="+"/>
-    </dc:DockableControl.OptionalHeaderAttachment>
+  <dc:DockableControl Theme="{StaticResource CustomDockable}">
       <dc:DockableControl.ItemsSource>
         <m:DockableAssets/>
         <m:DockableAssets/>

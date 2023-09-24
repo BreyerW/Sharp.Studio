@@ -5,7 +5,8 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sharp.Studio.Views.CloseableHeader">
   <StackPanel Orientation="Horizontal">
-<TextBlock Text="{Binding Text}" HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+<TextBlock  Text="{Binding Text}" HorizontalAlignment="Center" VerticalAlignment="Center">
+</TextBlock>
 <Button Background="Transparent" Content="X" HorizontalAlignment="Right" VerticalAlignment="Center"/>
 </StackPanel>
 </UserControl>

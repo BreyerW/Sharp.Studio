@@ -13,16 +13,59 @@
         <local:ViewLocator/>
     </Application.DataTemplates>
   <Application.Resources>
-    <DataTemplate x:Key="AssetsDock">
-      <vms:DockableItem>
-        <vms:DockableItem.Header>
-          <TextBlock Text="Assets"/>
-        </vms:DockableItem.Header>
-        <vms:DockableItem.Content>
-          <v:AssetsView/>
-        </vms:DockableItem.Content>
-      </vms:DockableItem>
-    </DataTemplate>
+    <dt:DockToOrientationConverter x:Key="DockToOrientationConverter"/>
+
+    <ControlTheme TargetType="dt:DockableControl"
+        x:Key="CustomDockable">
+
+      <Setter Property="Template">
+        <ControlTemplate>
+          <DockPanel Name="panel" LastChildFill="true">
+            <DockPanel DockPanel.Dock="{TemplateBinding TabStripPlacement}">
+              <ScrollViewer DockPanel.Dock="Left" Name="scroller" Background="Transparent"
+                    HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden">
+
+                <ItemsPresenter
+                        Name="PART_ItemsPresenter"
+                        ItemsPanel="{TemplateBinding ItemsPanel}"
+												/>
+
+              </ScrollViewer>
+              <Button HorizontalAlignment="Right" Content="+" Grid.Column="1"/>
+            </DockPanel>
+            <ContentPresenter
+              Margin="{TemplateBinding Margin}"
+              Padding="{TemplateBinding Padding}"
+              Background="{TemplateBinding Background}"
+              Name="PART_SelectedContentHost"
+              Content="{TemplateBinding SelectedItem}"
+              ContentTemplate="{TemplateBinding ContentTemplate}"/>
+          </DockPanel>
+        </ControlTemplate>
+      </Setter>
+      <Setter Property="ItemsPanel">
+        <ItemsPanelTemplate>
+          <StackPanel Orientation="{TemplateBinding TabStripPlacement, Converter={StaticResource DockToOrientationConverter}}}"/>
+
+        </ItemsPanelTemplate>
+      </Setter>
+      <Setter Property="ItemTemplate">
+        <DataTemplate>
+          <ContentPresenter Margin="1" Content="{Binding Header}"  HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        </DataTemplate>
+      </Setter>
+      <Setter Property="ContentTemplate">
+        <DataTemplate>
+          <ContentPresenter
+                          HorizontalContentAlignment="Stretch"
+                          VerticalContentAlignment="Stretch"
+                          Content="{Binding Content}"
+                          ContentTemplate="{TemplateBinding SelectedContentTemplate}"
+                          Margin="{TemplateBinding Padding}"
+											  />
+        </DataTemplate>
+      </Setter>
+    </ControlTheme>
   </Application.Resources>
     <Application.Styles>
       

@@ -17,12 +17,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.ComponentModel;
 using Avalonia.Threading;
-using System.Diagnostics;
 using System.Globalization;
-using System.Net.Security;
-using Microsoft.CodeAnalysis.Operations;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 
 namespace Sharp.DockManager
 {
@@ -36,11 +33,11 @@ namespace Sharp.DockManager
 		Bottom,
 		Center
 	}
-	public partial class DockableControl : TabControl, IStyleable, IDockable
+	public partial class DockableControl : TabControl, IStyleable
 	{
 		private static bool isDragging = false;
 		private static double autoScrollZone = 33;
-		private static readonly DispatcherTimer timer = new DispatcherTimer();
+		//private static readonly DispatcherTimer timer = new DispatcherTimer();
 		private const int animDuration = 200;
 		private static readonly Animation swapAnimation = new Animation
 		{
@@ -79,12 +76,10 @@ namespace Sharp.DockManager
 			Background = new SolidColorBrush(Colors.PaleVioletRed),
 			Opacity = 0.33
 		};
-		private static CancellationTokenSource cts = null;
+
 		private static (Control control, Region area) lastTrigger = default;
-		private static DockableControl sourceDockable = null;
+		protected static DockableControl sourceDockable = null;
 		private static PixelPoint screenMousePosOffset;
-		private static Point mousePosOffset;
-		private static PointerEventArgs pointer;
 
 		private static DockableItem selectedItem;
 		private static Dictionary<Window, int> sortedWindows = new();
@@ -99,41 +94,9 @@ namespace Sharp.DockManager
 			get;
 			set;
 		}
-		public static Action<DockableControl, DockableControl> ConfigureNewDockable
-		{
-			get;
-			set;
-		}
+		
 		public DockableTabViewModel TabItems { get; set; } = new();
-		public Dock Dock { get; set; }
-		public Control SelectedHeader { get => header; }
-		public Control SelectedBody { get => body; }
-		public static bool AlignAttachmentToEdge
-		{
-			get; set;
-		}
-		public static bool SwapControlOrderInHeader
-		{
-			get; set;
-		}
-		public static readonly StyledProperty<Control> OptionalHeaderAttachmentProperty =
-					AvaloniaProperty.Register<DockableControl, Control>(nameof(OptionalHeaderAttachment));
-		public Control OptionalHeaderAttachment
-		{
-			get
-			{
-				return GetValue(OptionalHeaderAttachmentProperty);
-			}
-			set
-			{
-				SetValue(OptionalHeaderAttachmentProperty, value);
-			}
-		}
-		public static bool HideContentWhenDrag
-		{
-			get;
-			set;
-		}
+
 		/// <summary>
 		/// Gets the z-order for one or more windows atomically with respect to each other. In Windows, smaller z-order is higher. If the window is not top level, the z order is returned as -1. 
 		/// </summary>
@@ -159,9 +122,9 @@ namespace Sharp.DockManager
 
 		static DockableControl()
 		{
-			timer.Stop();
+			/*timer.Stop();
 			timer.Interval = TimeSpan.FromSeconds(1 / 60);
-			timer.Tick+=ScrollHeader;
+			timer.Tick += ScrollHeader;*/
 			Helpers.TabItemXProperty.Changed.AddClassHandler<TabItem>((s, e)=>{
 				if(s.IsAnimating(Helpers.TabItemXProperty))
 					s.Arrange(s.Bounds.WithX(e.GetNewValue<double>()));
@@ -176,7 +139,6 @@ namespace Sharp.DockManager
 			{
 				if (selectedItem is null)
 					return;
-				pointer = e;
 				PointerMoved(e);
 				if(isDragging)
 					DoDrag(e);
@@ -184,9 +146,7 @@ namespace Sharp.DockManager
 			});
 			InputElement.PointerReleasedEvent.AddClassHandler<Interactive>((s, e) =>
 			{
-				//Debug.WriteLine("release capture");
-				//e.Pointer.Capture(null);
-				if (selectedItem is null)
+				if (selectedItem is null || isDragging is false)
 					return;
 				DropTab(e);
 				DropFinished(e);
@@ -268,31 +228,9 @@ namespace Sharp.DockManager
 		public DockableControl()
 		{
 			InitializeComponent();
-			ConfigureNewDockable?.Invoke(this, sourceDockable);
 			ItemsSource = TabItems.Items;
-			//DataContext = _tabItems.Items;
 			Background = new SolidColorBrush(new Color(255,56,56,56));
-		}
-
-		private static void ScrollHeader(object sender, EventArgs e)
-		{
-			var scroll = sourceDockable.scroller;
-			var panel = sourceDockable.header.Panel;
-			var scrollerMousePos = pointer.GetPosition(scroll);
-			if (scrollerMousePos.X < autoScrollZone)
-			{
-				double offsetChange = (autoScrollZone - scrollerMousePos.X)/100;
-				scroll.Offset = scroll.Offset.WithX(scroll.Offset.X - offsetChange);
-			}
-			else if (scrollerMousePos.X > scroll.Bounds.Width - autoScrollZone)
-			{
-				double offsetChange = (scrollerMousePos.X - (scroll.Bounds.Width - autoScrollZone))/100;
-				scroll.Offset = scroll.Offset.WithX(scroll.Offset.X + offsetChange);
-			}
-			var tabItem = sourceDockable.ContainerFromIndex(sourceDockable.SelectedIndex);
-			scrollerMousePos = pointer.GetPosition(panel);
-			var expectedTabLoc = scrollerMousePos - mousePosOffset;
-			tabItem.Arrange(tabItem.Bounds.WithX(expectedTabLoc.X));
+			TabStripPlacement = Dock.Left;
 		}
 		//https://github.com/sskodje/wpfchrometabs-mvvm/blob/master/ChromeTabs/TabShape.cs
 		private Geometry GetGeometry()
@@ -320,26 +258,19 @@ namespace Sharp.DockManager
 			s.ZIndex = int.MaxValue;
 			sourceDockable = s.FindAncestorOfType<DockableControl>();
 			sourceDockable.SelectedItem = s.Content;
-			var pos = e.GetPosition(sourceDockable.scroller);
-			mousePosOffset = pos-s.TranslatePoint(default, sourceDockable.scroller).GetValueOrDefault();
 			screenMousePosOffset = s.PointToScreen(e.GetPosition(s)) - s.GetVisualParent().PointToScreen(s.Bounds.Position);
 			selectedItem = s.Content as DockableItem;
 		}
 		
 		private static void DropFinished(PointerReleasedEventArgs e)
 		{
-			var count = sourceDockable.Items.Count;
-			foreach (var item in sourceDockable.header.Panel.Children)
-				item.ZIndex = count--;
 			sourceDockable = null;
 			canvas.IsVisible = false;
 			selectedItem = null;
 			lastTrigger = default;
-			mousePosOffset = default;
 			screenMousePosOffset = default;
 			draggedItem.IsVisible = false;
 			isDragging = false;
-			timer.Stop();
 		}
 		private static async void PointerMoved(PointerEventArgs e)
 		{
@@ -348,24 +279,13 @@ namespace Sharp.DockManager
 				if (sourceDockable.scroller is null)
 					return;
 					
-				var scroll = sourceDockable.scroller;
-				var scrollerMousePos = pointer.GetPosition(scroll);
+				var scroll = sourceDockable.header.Panel;
+				var tab = sourceDockable.ContainerFromIndex(sourceDockable.SelectedIndex);
+				var scrollerMousePos = e.GetPosition(scroll);
 				
-				if (scroll.Bounds.Contains(scrollerMousePos))
-				{
-					if (sourceDockable.TabItems.Items.Count is 1)
-						return;
-
-					if ((scrollerMousePos.X < autoScrollZone) || (scrollerMousePos.X > scroll.Bounds.Width - autoScrollZone))
-					{
-						if(!timer.IsEnabled)
-							timer.Start();
-					}
-					else if (timer.IsEnabled)
-						timer.Stop();
-				}
+				if (tab.Bounds.Contains(scrollerMousePos))
+					return;
 				isDragging = true;
-				timer.Stop();
 				UpdateZOrder();
 				
 				var Width = sourceDockable.Bounds.Width;
@@ -375,7 +295,6 @@ namespace Sharp.DockManager
 				draggedItem.Height = Height;
 			}
 		}
-
 		private static void DoDrag(PointerEventArgs e)
 		{
 			Point mousePos = e.GetPosition(draggedItem);
@@ -401,7 +320,7 @@ namespace Sharp.DockManager
 						if (targetDockable.scroller.Bounds.Contains(dPos))
 						{
 							Control tab = null;
-							var scrollerPos = e.GetPosition(targetDockable.scroller);
+							var scrollerPos = e.GetPosition(targetDockable.header.Panel);
 							foreach (var t in targetDockable.header.Panel.Children)
 							{
 								if (t.Bounds.Contains(scrollerPos))
@@ -413,7 +332,6 @@ namespace Sharp.DockManager
 							if (tab is not null)
 							{
 								currentTrigger = (tab, Region.Center);
-								//break;
 							}
 							else
 							{
@@ -424,7 +342,6 @@ namespace Sharp.DockManager
 						else
 						{
 							var posInBody = e.GetPosition(targetDockable.body);
-							//Debug.WriteLine("area: " + posInBody);
 							if (posInBody is { X: >= 0, Y: >= 0 })
 							{
 								if (sourceDockable == targetDockable && sourceDockable.Items.Count is 1)
@@ -499,9 +416,9 @@ namespace Sharp.DockManager
             else if (e.Delta.Y < 0)
                scroller.LineRight();
         }
-		private static DockableControl PrepareNewDockableControl()
+		private static void DeleteOldDockableIfEmpty()
 		{
-			if (sourceDockable is { TabItems.Items.Count: 1 })
+			if (sourceDockable.TabItems.Items.Count is 0 )
 			{
 				var parent = sourceDockable.GetLogicalParent();
 				if (parent is Grid { Name: "dockable" } g)
@@ -525,7 +442,11 @@ namespace Sharp.DockManager
 				else
 					sourceDockable.ReplaceWith(null);
 			}
+		}
+		private static DockableControl PrepareNewDockableControl()
+		{
 			sourceDockable.TabItems.Items.Remove(selectedItem);
+			DeleteOldDockableIfEmpty();
 			var tab = new DockableControl();
 			tab.TabItems.Items.Add(selectedItem);
 			return tab;
@@ -555,14 +476,18 @@ namespace Sharp.DockManager
 						if (swapTo == targetDockable.SelectedIndex || lastTrigger.control is not TabItem)
 							return; //Trying to swap with itself, do nothing 
 						targetDockable.TabItems.Items.Move(targetDockable.SelectedIndex, swapTo);
-						targetDockable.SelectedIndex = swapTo;
 					}
 					else
 					{
 						sourceDockable.TabItems.Items.Remove(selectedItem);
-						targetDockable.TabItems.Items.Add(selectedItem);
-						targetDockable.SelectedItem = selectedItem;
+						var insert = targetDockable.IndexFromContainer(lastTrigger.control);
+						targetDockable.TabItems.Items.Insert(insert,selectedItem);
+						DeleteOldDockableIfEmpty();
 					}
+					targetDockable.SelectedItem = selectedItem;
+					var count = targetDockable.Items.Count;
+					foreach (var item in targetDockable.header.Panel.Children)
+						item.ZIndex = count--;
 				}
 				else
 				{
