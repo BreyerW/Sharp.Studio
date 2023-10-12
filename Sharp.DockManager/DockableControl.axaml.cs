@@ -20,13 +20,15 @@ using System.Threading;
 using Avalonia.Threading;
 using System.Globalization;
 using Avalonia.Markup.Xaml.MarkupExtensions;
+using Avalonia.Markup.Xaml;
+using System.Reflection;
+using Avalonia.Platform;
 
 namespace Sharp.DockManager
 {
-	enum Region
+	public enum Region
 	{
 		None,
-		Invalid,
 		Left,
 		Right,
 		Top,
@@ -36,45 +38,15 @@ namespace Sharp.DockManager
 	public partial class DockableControl : TabControl, IStyleable
 	{
 		private static bool isDragging = false;
-		private static double autoScrollZone = 33;
-		//private static readonly DispatcherTimer timer = new DispatcherTimer();
-		private const int animDuration = 200;
-		private static readonly Animation swapAnimation = new Animation
-		{
-			Easing = new CubicEaseOut(),
-			Duration = TimeSpan.FromMilliseconds(animDuration),
-			PlaybackDirection = PlaybackDirection.Normal,
-			FillMode = FillMode.None,
-
-			Children =
-			{
-				new KeyFrame
-				{
-					KeyTime = TimeSpan.FromMilliseconds(0),
-					Setters = {
-						new Setter(Helpers.TabItemXProperty,0)
-					}
-				},
-				new KeyFrame
-				{
-
-					KeyTime = TimeSpan.FromMilliseconds(animDuration),
-					Setters = {
-						new Setter(Helpers.TabItemXProperty,0)
-					}
-				}
-			}
-		};
+		
 		private readonly static Window draggedItem = new Window() {
 			ShowActivated = false,
 			Topmost = true,
 			SystemDecorations = SystemDecorations.None,
 			ExtendClientAreaTitleBarHeightHint = 0,
 			ExtendClientAreaToDecorationsHint = true,
-			ExtendClientAreaChromeHints = Avalonia.Platform.ExtendClientAreaChromeHints.NoChrome,
-			ShowInTaskbar = false,
-			Background = new SolidColorBrush(Colors.PaleVioletRed),
-			Opacity = 0.33
+			ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome,
+			ShowInTaskbar = false
 		};
 
 		private static (Control control, Region area) lastTrigger = default;
@@ -88,52 +60,77 @@ namespace Sharp.DockManager
 		internal ScrollViewer scroller;
 		private ItemsPresenter header;
 		private ContentPresenter body;
+		private static IntPtr displayHandle;
+
 		Type IStyleable.StyleKey => typeof(DockableControl);
 		public static Action<Control, Control> ReplaceControlRequested
 		{
 			get;
 			set;
 		}
-		
+		public static SolidColorBrush PreviewBrush
+		{
+			set => draggedItem.Background = value;
+		}
 		public DockableTabViewModel TabItems { get; set; } = new();
+		private static int index = 0;
 
 		/// <summary>
 		/// Gets the z-order for one or more windows atomically with respect to each other. In Windows, smaller z-order is higher. If the window is not top level, the z order is returned as -1. 
 		/// </summary>
 		private static void UpdateZOrder()
 		{
-			var index = 0;
-			Helpers.EnumWindows((wnd, param) =>
+			index = 0;
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD))
 			{
-				if (draggedItem.TryGetPlatformHandle()?.Handle == wnd)
+				if (displayHandle == IntPtr.Zero)
+					displayHandle = Helpers.XOpenDisplay(null);
+
+				var root = Helpers.XDefaultRootWindow(displayHandle);
+				Helpers.XQueryTree(displayHandle, root, out _, out _, out var ptrToChilds, out var count);
+				if (count > 0)
 				{
-					//skip draggable window
-					index++;
-					return true;
+					var childs = MemoryMarshal.CreateReadOnlySpan(ref ptrToChilds, count);
+					foreach (var child in childs)
+					{
+						TestWindowHandle(child);
+					}
 				}
-				var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
-				foreach (var wind in lifetime.Windows)
-					if (wind != draggedItem && wind.TryGetPlatformHandle().Handle == wnd)
-						CollectionsMarshal.GetValueRefOrAddDefault(sortedWindows, wind, out _) = index;
+			}
+			else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+			{
+			}
+			else
+				Helpers.EnumWindows((wnd, param) =>
+				{
+					return TestWindowHandle(wnd);
+				}, IntPtr.Zero);
+		}
+		private static bool TestWindowHandle(IntPtr wnd)
+		{
+			if (draggedItem.TryGetPlatformHandle()?.Handle == wnd)
+			{
+				//skip draggable window
 				index++;
 				return true;
-			}, IntPtr.Zero);
+			}
+			var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
+			foreach (var wind in lifetime.Windows)
+				if (wind != draggedItem && wind.TryGetPlatformHandle().Handle == wnd)
+					CollectionsMarshal.GetValueRefOrAddDefault(sortedWindows, wind, out _) = index;
+			index++;
+			return true;
 		}
-
 		static DockableControl()
 		{
-			/*timer.Stop();
-			timer.Interval = TimeSpan.FromSeconds(1 / 60);
-			timer.Tick += ScrollHeader;*/
-			Helpers.TabItemXProperty.Changed.AddClassHandler<TabItem>((s, e)=>{
-				if(s.IsAnimating(Helpers.TabItemXProperty))
-					s.Arrange(s.Bounds.WithX(e.GetNewValue<double>()));
-			});
+			PreviewBrush = new SolidColorBrush(Colors.PaleVioletRed, 0.33);
 			InputElement.PointerPressedEvent.AddClassHandler<TabItem>((s, e) =>
 			{
+				e.Handled = true;
+				if (DockManager.GetAllowDrag(s) is false)
+					return;
 			//use hittesting and if tab item is found capture its panel
 				PointerPressedOnTabItem(e);
-				e.Handled = true;
 			});
 			InputElement.PointerMovedEvent.AddClassHandler<Interactive>((s, e) =>
 			{
@@ -230,7 +227,6 @@ namespace Sharp.DockManager
 			InitializeComponent();
 			ItemsSource = TabItems.Items;
 			Background = new SolidColorBrush(new Color(255,56,56,56));
-			TabStripPlacement = Dock.Left;
 		}
 		//https://github.com/sskodje/wpfchrometabs-mvvm/blob/master/ChromeTabs/TabShape.cs
 		private Geometry GetGeometry()
@@ -316,6 +312,21 @@ namespace Sharp.DockManager
 					
 					if (targetDockable is not null)
 					{
+						(bool Top, bool Bottom, bool Left, bool Right, bool Center, bool Header) allow =
+						(
+							DockManager.GetAllowTopDrop(targetDockable),
+							DockManager.GetAllowBottomDrop(targetDockable),
+							DockManager.GetAllowLeftDrop(targetDockable),
+							DockManager.GetAllowRightDrop(targetDockable),
+							DockManager.GetAllowCenterDrop(targetDockable),
+							DockManager.GetAllowHeaderDrop(targetDockable)
+						);
+						var noRegionIsAllowed = !allow.Top && !allow.Bottom && !allow.Left && !allow.Right && !allow.Center && !allow.Header;
+						if (noRegionIsAllowed is true)
+						{
+							currentTrigger = (null, Region.None);
+							break;
+						}
 						var dPos = e.GetPosition(targetDockable);
 						if (targetDockable.scroller.Bounds.Contains(dPos))
 						{
@@ -329,7 +340,7 @@ namespace Sharp.DockManager
 									break;
 								}
 							}
-							if (tab is not null)
+							if (allow.Header && tab is not null && DockManager.GetAllowDrop(tab))
 							{
 								currentTrigger = (tab, Region.Center);
 							}
@@ -344,24 +355,27 @@ namespace Sharp.DockManager
 							var posInBody = e.GetPosition(targetDockable.body);
 							if (posInBody is { X: >= 0, Y: >= 0 })
 							{
-								if (sourceDockable == targetDockable && sourceDockable.Items.Count is 1)
+								if (sourceDockable == targetDockable && allow.Center && sourceDockable.Items.Count is 1)
 									currentTrigger = (targetDockable.body, Region.Center);
-								else if (posInBody.X < targetDockable.body.Bounds.Width * 0.25)
+								else if (allow.Left && posInBody.X < targetDockable.body.Bounds.Width * 0.25)
 									currentTrigger = (targetDockable.body, Region.Left);
-								else if (posInBody.X > targetDockable.body.Bounds.Width * 0.75)
+								else if (allow.Right && posInBody.X > targetDockable.body.Bounds.Width * 0.75)
 									currentTrigger = (targetDockable.body, Region.Right);
-								else if (posInBody.Y < targetDockable.body.Bounds.Height * 0.25)
+								else if (allow.Top && posInBody.Y < targetDockable.body.Bounds.Height * 0.25)
 									currentTrigger = (targetDockable.body, Region.Top);
-								else if (posInBody.Y > targetDockable.body.Bounds.Height * 0.75)
+								else if (allow.Bottom && posInBody.Y > targetDockable.body.Bounds.Height * 0.75)
 									currentTrigger = (targetDockable.body, Region.Bottom);
-								else
+								else if (allow.Center)
 									currentTrigger = (targetDockable.body, Region.Center);
 							}
 							else
+							{
+								currentTrigger = (null, Region.None);
 								break;
+							}
 						}
 
-						if (currentTrigger.area is not Region.None or Region.Invalid)
+						if (currentTrigger.area is not Region.None)
 						{
 							var adornerTarget = currentTrigger.control is TabItem ? currentTrigger.control : targetDockable;
 							var adornerLayer = AdornerLayer.GetAdornerLayer(adornerTarget);
@@ -399,7 +413,6 @@ namespace Sharp.DockManager
 			draggedItem.IsVisible = cond;
 			lastTrigger = currentTrigger;
 		}
-
 		
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
         {
@@ -453,7 +466,6 @@ namespace Sharp.DockManager
 		}
 		private static void DropTab(PointerReleasedEventArgs e)
 		{
-			
 			if (lastTrigger.control is null)
 			{
 				draggedItem.Hide();
@@ -465,7 +477,7 @@ namespace Sharp.DockManager
 				var tab = PrepareNewDockableControl();
 				dropWin.Content = tab;
 			}
-			else if(lastTrigger.area is not Region.Invalid or Region.None)
+			else if(lastTrigger.area is not Region.None)
 			{
 				var targetDockable = lastTrigger.control.FindAncestorOfType<DockableControl>();
 				if (lastTrigger.area is Region.Center)
@@ -498,22 +510,3 @@ namespace Sharp.DockManager
 		}
     }
 }
-/*
- double prevEdgePosition = 0;
-					double nextEdgePosition = 0;
-					var prevEdgeFound = false;
-
-					foreach (var child in virtualOrderOfChildren)
-					{
-						var container = sourceDockable.ContainerFromItem(child);
-						if (container == nextTabItem)
-							break;
-						if (!prevEdgeFound)
-						{
-							prevEdgePosition += container.Bounds.X;
-							prevEdgeFound = container == prevTabItem;
-						}
-						nextEdgePosition += container.Bounds.X;
-					}
-					prevEdgePosition += prevTabItem is null ? 0 : prevTabItem.Bounds.Width;
- */

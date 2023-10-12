@@ -10,13 +10,8 @@ using System.Runtime.InteropServices;
 
 namespace Sharp.DockManager
 {
-	internal static class Helpers
+	public static class Helpers
 	{
-		public static readonly StyledProperty<double> TabItemXProperty =
-			AvaloniaProperty.Register<TabItem, double>("X");
-
-		public static readonly StyledProperty<double> TabItemYProperty =
-			AvaloniaProperty.Register<TabItem, double>("Y");
 		public static void CopyGridProperties(this Control source, Control copyTo)
 		{
 			Grid.SetColumn(copyTo, Grid.GetColumn(source));
@@ -67,7 +62,14 @@ namespace Sharp.DockManager
 
 		internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
-		//TODO: XQueryTree for X11 based Linux and for macos NSWindow.orderedIndex
+		[DllImport("libX11.so")]
+		internal static extern IntPtr XOpenDisplay(string name);
+		[DllImport("libX11.so")]
+		internal static extern int XCloseDisplay(IntPtr display);
+		[DllImport("libX11.so")]
+		internal static extern IntPtr XDefaultRootWindow(IntPtr display);
+		[DllImport("libX11.so")]
+		internal static extern int XQueryTree(IntPtr display, IntPtr w, out IntPtr root_return, out IntPtr parent_return, out IntPtr children_return, out int nchildren_return);
 		[DllImport("USER32.DLL")]
 		internal static extern bool EnumWindows(EnumWindowsProc enumFunc, IntPtr lParam);
 	}

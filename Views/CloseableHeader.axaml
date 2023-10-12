@@ -4,9 +4,14 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sharp.Studio.Views.CloseableHeader">
-  <StackPanel Orientation="Horizontal">
-<TextBlock  Text="{Binding Text}" HorizontalAlignment="Center" VerticalAlignment="Center">
+  <StackPanel Orientation="Vertical">
+    <LayoutTransformControl>
+      <LayoutTransformControl.LayoutTransform>
+        <RotateTransform Angle="-90"/>
+      </LayoutTransformControl.LayoutTransform>
+    <TextBlock  Text="{Binding Text}" HorizontalAlignment="Center" VerticalAlignment="Center">
 </TextBlock>
+      </LayoutTransformControl>
 <Button Background="Transparent" Content="X" HorizontalAlignment="Right" VerticalAlignment="Center"/>
 </StackPanel>
 </UserControl>
