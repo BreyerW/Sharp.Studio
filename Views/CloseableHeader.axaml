@@ -6,7 +6,7 @@
 			 xmlns:dt="using:Sharp.DockManager"
              x:Class="Sharp.Studio.Views.CloseableHeader">
 	<Panel>
-	<Path  Fill="Goldenrod" Data="{Binding PathData}"
+	<Path  Fill="rgb(56,56,56)" Data="{Binding PathData}"
 		   />
  <LayoutTransformControl>
       <LayoutTransformControl.LayoutTransform>
@@ -21,11 +21,13 @@
 				 <ColumnDefinition Width="*">
 				 </ColumnDefinition>
 			 </Grid.ColumnDefinitions>
+			 <!--have it here if you want rotated for left right attachment <Path  Fill="rgb(56,56,56)" Data="{Binding PathData}"
+		   />-->
 			 <StackPanel Orientation="Horizontal">
-			 <TextBlock Padding="10 0 0 0" Text="{Binding Text}" HorizontalAlignment="Center" VerticalAlignment="Center">
+			 <TextBlock Padding="15 0 0 0" Text="{Binding Text}" HorizontalAlignment="Center" VerticalAlignment="Center">
 			 </TextBlock>
 
-			 <Button Background="Transparent"  Content="X" HorizontalAlignment="Right" VerticalAlignment="Center" Click="Button_Click" />
+			 <Button Background="Transparent" Padding="10 0 15 0"  Content="X" HorizontalAlignment="Right" VerticalAlignment="Center" Click="Button_Click" />
 		 </StackPanel></Grid>
 		 
 
