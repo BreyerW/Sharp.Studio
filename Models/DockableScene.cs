@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 using Sharp.DockManager.ViewModels;
 using Sharp.Studio.Views;
 
@@ -8,7 +8,7 @@ namespace Sharp.Studio.Models
 	{
 		public DockableScene()
 		{
-			Header = new CloseableHeader() { Text = "Scene" };
+			Header = new CloseableHeader() { Text = "Scene", Rotation = 90};
 			Content = new SceneView();
 		}
 	}

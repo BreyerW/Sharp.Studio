@@ -1,6 +1,4 @@
 using Avalonia;
-using Avalonia.Animation.Easings;
-using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Presenters;
@@ -16,13 +14,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Threading;
-using Avalonia.Threading;
 using System.Globalization;
-using Avalonia.Markup.Xaml.MarkupExtensions;
-using Avalonia.Markup.Xaml;
-using System.Reflection;
 using Avalonia.Platform;
+using Avalonia.Controls.Shapes;
 
 namespace Sharp.DockManager
 {
@@ -35,7 +29,56 @@ namespace Sharp.DockManager
 		Bottom,
 		Center
 	}
-	public partial class DockableControl : TabControl, IStyleable
+    public class TabShape : Shape
+    {
+        public TabShape()
+        {
+            Stretch = Stretch.Fill;
+        }
+
+        public Path TabShapePath
+        {
+            get { return (Path)GetValue(TabShapePathProperty); }
+            set { SetValue(TabShapePathProperty, value); }
+        }
+
+        // Using a DependencyProperty as the backing store for TabShapePath.  This enables animation, styling, binding, etc...
+        //public static readonly DependencyProperty TabShapePathProperty =
+       //     DependencyProperty.Register("TabShapePath", typeof(Path), typeof(TabShape), new PropertyMetadata(null));
+
+        public static readonly StyledProperty<Path> TabShapePathProperty =
+                    AvaloniaProperty.Register<TabShape, Path>(nameof(TabShapePath));
+
+        protected override Size MeasureOverride(Size constraint)
+        {
+            if (constraint.Width == double.PositiveInfinity || constraint.Height == double.PositiveInfinity)
+            {
+                return new Size(0,0);
+            }
+            // we will size ourselves to fit the available space
+            return constraint;
+        }
+        protected override Geometry? CreateDefiningGeometry() => GetGeometry();
+
+        private Geometry GetGeometry()
+        {
+            if (TabShapePath != null)
+            {
+                return TabShapePath.Data;
+            }
+            double width = DesiredSize.Width - StrokeThickness;
+
+            double height = 25;
+            double x1 = width - 15;
+            double x2 = width - 10;
+            double x3 = width - 5;
+            double x4 = width - 2.5;
+            double x5 = width;
+
+            return Geometry.Parse(string.Format(CultureInfo.InvariantCulture, "M0,{5} C2.5,{5} 5,0 10,0 15,0 {0},0 {1},0 {2},0 {3},{5} {4},{5}", x1, x2, x3, x4, x5, height));
+        }
+    }
+    public partial class DockableControl : TabControl, IStyleable
 	{
 		private static bool isDragging = false;
 		
@@ -72,7 +115,27 @@ namespace Sharp.DockManager
 		{
 			set => draggedItem.Background = value;
 		}
-		public DockableTabViewModel TabItems { get; set; } = new();
+        public string PathData
+        {
+            get
+            {
+                /*if (TabShapePath != null)
+                {
+                    return TabShapePath.Data;
+                }*/
+                //107.2, 44.8
+                double width = 107.2 - 1;
+
+                double height = 44.8;
+                double x1 = width - 15;
+                double x2 = width - 10;
+                double x3 = width - 5;
+                double x4 = width - 2.5;
+                double x5 = width;
+                return string.Format(CultureInfo.InvariantCulture, "M0,{5} C2.5,{5} 5,0 10,0 15,0 {0},0 {1},0 {2},0 {3},{5} {4},{5}", x1, x2, x3, x4, x5, height);
+            }
+        }
+        public DockableTabViewModel TabItems { get; set; } = new();
 		private static int index = 0;
 
 		/// <summary>
@@ -149,7 +212,7 @@ namespace Sharp.DockManager
 				DropFinished(e);
 				e.Handled = true;
 			});
-
+			
 			adornedElement.Background = Brushes.PaleVioletRed;
 			adornedElement.Opacity = 0.33;
 			adornedElement.IsVisible = true;
@@ -225,11 +288,23 @@ namespace Sharp.DockManager
 		public DockableControl()
 		{
 			InitializeComponent();
-			ItemsSource = TabItems.Items;
+            TabItems.Items.CollectionChanged += Items_CollectionChanged;
+            ItemsSource = TabItems.Items;
 			Background = new SolidColorBrush(new Color(255,56,56,56));
 		}
-		//https://github.com/sskodje/wpfchrometabs-mvvm/blob/master/ChromeTabs/TabShape.cs
-		private Geometry GetGeometry()
+
+        private void Items_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+			if(e.NewItems != null)
+				foreach (var newItem in e.NewItems)
+				{
+					if (newItem is DockableItem item)
+						item.ParentCollection = TabItems.Items;
+				}
+        }
+
+        //https://github.com/sskodje/wpfchrometabs-mvvm/blob/master/ChromeTabs/TabShape.cs
+        private Geometry GetGeometry()
 		{
 			/*if (TabShapePath != null)
 			{
@@ -243,7 +318,6 @@ namespace Sharp.DockManager
 			double x3 = width - 5;
 			double x4 = width - 2.5;
 			double x5 = width;
-
 			return Geometry.Parse(string.Format(CultureInfo.InvariantCulture, "M0,{5} C2.5,{5} 5,0 10,0 15,0 {0},0 {1},0 {2},0 {3},{5} {4},{5}", x1, x2, x3, x4, x5, height));
 		}
 		private static void PointerPressedOnTabItem(PointerPressedEventArgs e)

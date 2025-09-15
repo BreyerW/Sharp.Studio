@@ -3,15 +3,32 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+			 xmlns:dt="using:Sharp.DockManager"
              x:Class="Sharp.Studio.Views.CloseableHeader">
-  <StackPanel Orientation="Vertical">
-    <LayoutTransformControl>
+	<Panel>
+	<Path  Fill="Goldenrod" Data="{Binding PathData}"
+		   />
+ <LayoutTransformControl>
       <LayoutTransformControl.LayoutTransform>
-        <RotateTransform Angle="-90"/>
+        <RotateTransform Angle="{Binding Rotation}"/>
       </LayoutTransformControl.LayoutTransform>
-    <TextBlock  Text="{Binding Text}" HorizontalAlignment="Center" VerticalAlignment="Center">
-</TextBlock>
-      </LayoutTransformControl>
-<Button Background="Transparent" Content="X" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-</StackPanel>
+	 
+	 
+				<!-- <Path Stroke="DarkGoldenRod" StrokeThickness="3"
+			 Data="{Binding PathData}" />Data="M0,44 C2.5,44 5,0 10,0 15,0 85,0 90,0 95,0 97.5,44 100,44"-->
+		 <Grid>
+			 <Grid.ColumnDefinitions>
+				 <ColumnDefinition Width="*">
+				 </ColumnDefinition>
+			 </Grid.ColumnDefinitions>
+			 <StackPanel Orientation="Horizontal">
+			 <TextBlock Padding="10 0 0 0" Text="{Binding Text}" HorizontalAlignment="Center" VerticalAlignment="Center">
+			 </TextBlock>
+
+			 <Button Background="Transparent"  Content="X" HorizontalAlignment="Right" VerticalAlignment="Center" Click="Button_Click" />
+		 </StackPanel></Grid>
+		 
+
+ </LayoutTransformControl>
+	</Panel>
 </UserControl>

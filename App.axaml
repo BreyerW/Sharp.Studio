@@ -13,11 +13,11 @@
         <local:ViewLocator/>
     </Application.DataTemplates>
   <Application.Resources>
-    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPointerOver" Color="rgb(56,56,56)"/>
+    <!--<SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPointerOver" Color="rgb(56,56,56)"/>
     <SolidColorBrush x:Key="TabItemHeaderBackgroundSelected" Color="rgb(56,56,56)"/>
     <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselectedPointerOver" Color="rgb(56,56,56)"/>
     <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselectedPressed" Color="rgb(56,56,56)"/>
-    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPressed" Color="rgb(56,56,56)"/>
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPressed" Color="rgb(56,56,56)"/>-->
     <dt:DockToOrientationConverter x:Key="DockToOrientationConverter"/>
 
     <ControlTheme TargetType="dt:DockableControl"
@@ -50,7 +50,10 @@
       </Setter>
       <Setter Property="ItemsPanel">
         <ItemsPanelTemplate>
-          <StackPanel Orientation="{TemplateBinding TabStripPlacement, Converter={StaticResource DockToOrientationConverter}}}"/>
+
+			<StackPanel Orientation="{TemplateBinding TabStripPlacement, Converter={StaticResource DockToOrientationConverter}}}">
+				
+			</StackPanel>
 
         </ItemsPanelTemplate>
       </Setter>

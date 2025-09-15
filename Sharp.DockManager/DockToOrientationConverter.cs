@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Layout;
 using System;
@@ -14,7 +14,8 @@ namespace Sharp.DockManager
 			return dock switch
 			{
 				Dock.Left or Dock.Right => Orientation.Vertical,
-				Dock.Top or Dock.Bottom => Orientation.Horizontal
+				Dock.Top or Dock.Bottom => Orientation.Horizontal,
+				_ => Orientation.Horizontal
 			};
 		}
 
