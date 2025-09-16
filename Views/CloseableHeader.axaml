@@ -6,8 +6,6 @@
 			 xmlns:dt="using:Sharp.DockManager"
              x:Class="Sharp.Studio.Views.CloseableHeader">
 	<Panel>
-	<Path  Fill="rgb(56,56,56)" Data="{Binding PathData}"
-		   />
  <LayoutTransformControl>
       <LayoutTransformControl.LayoutTransform>
         <RotateTransform Angle="{Binding Rotation}"/>

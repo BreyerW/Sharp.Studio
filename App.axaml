@@ -12,17 +12,42 @@
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
+
+	
   <Application.Resources>
     <!--<SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPointerOver" Color="rgb(56,56,56)"/>
     <SolidColorBrush x:Key="TabItemHeaderBackgroundSelected" Color="rgb(56,56,56)"/>
     <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselectedPointerOver" Color="rgb(56,56,56)"/>
     <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselectedPressed" Color="rgb(56,56,56)"/>
     <SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPressed" Color="rgb(56,56,56)"/>-->
+	  
     <dt:DockToOrientationConverter x:Key="DockToOrientationConverter"/>
-
+	  <ControlTheme x:Key="CustomTabItem" TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+		  <Setter Property="Padding" Value="0" />
+		  <Setter Property="Margin" Value="0" />
+		  <Setter Property="Template">
+			  <ControlTemplate>
+					  <Panel>
+						  <Path  Fill="rgb(56,56,56)" Data="{Binding Path=Header.PathData}"/>
+							  <ContentPresenter
+								  Name="PART_ContentPresenter"
+								  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+								  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+								  Content="{TemplateBinding Header}"
+								  ContentTemplate="{TemplateBinding HeaderTemplate}"
+								  RecognizesAccessKey="True"
+                />
+							  <Border Name="PART_SelectedPipe"
+									  Background="{DynamicResource TabItemHeaderSelectedPipeFill}"
+									  CornerRadius="{DynamicResource ControlCornerRadius}"
+									  IsVisible="False"/>
+					  </Panel>
+			  </ControlTemplate>
+		  </Setter>
+		  </ControlTheme>
     <ControlTheme TargetType="dt:DockableControl"
         x:Key="CustomDockable">
-
+		<Setter Property="ItemContainerTheme" Value="{StaticResource CustomTabItem}" />
       <Setter Property="Template">
         <ControlTemplate>
           <DockPanel Name="panel" LastChildFill="true">
@@ -59,7 +84,7 @@
       </Setter>
       <Setter Property="ItemTemplate">
         <DataTemplate>
-          <ContentPresenter Margin="1" Content="{Binding Header}"  HorizontalAlignment="Left" VerticalAlignment="Center"/>
+          <ContentPresenter Content="{Binding Header}"  HorizontalAlignment="Left" VerticalAlignment="Center"/>
         </DataTemplate>
       </Setter>
       <Setter Property="ContentTemplate">

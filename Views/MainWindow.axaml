@@ -18,10 +18,8 @@
       <dc:DockableControl.ItemsSource>
         <m:DockableAssets/>
         <m:DockableAssets/>
-        <m:DockableScene/>
         <m:DockableAssets/>
         <m:DockableAssets/>
-        <m:DockableScene/>
       </dc:DockableControl.ItemsSource>
     </dc:DockableControl>
 </Window>

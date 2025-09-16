@@ -2,7 +2,9 @@ using System;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Markup.Xaml;
+using Avalonia.VisualTree;
 
 namespace Sharp.Studio.Views;
 //have look in future: https://www.sharpgis.net/post/Rotating-Elements-in-XAML-While-Maintaining-Proper-Flow
@@ -63,14 +65,12 @@ public partial class CloseableHeader : UserControl
     protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
         base.OnSizeChanged(e);
-        /*if (TabShapePath != null)
-            {
-                return TabShapePath.Data;
-            }*/
-        //107.2, 44.8
-        double width = DesiredSize.Width - 1;
+        var tab = this.FindAncestorOfType<TabItem>();
+        if (tab == null)
+            return;
+        double width = tab.DesiredSize.Width - 1;
         
-        double height = DesiredSize.Height;
+        double height = tab.DesiredSize.Height;
         double x1 = width - 15;
         double x2 = width - 10;
         double x3 = width - 5;
