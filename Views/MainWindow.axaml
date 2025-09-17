@@ -14,8 +14,8 @@
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
-  <dc:DockableControl Theme="{StaticResource CustomDockable}" >
-      <dc:DockableControl.ItemsSource>
+  <dc:DockableControl x:Name="dockable" SelectionChanged="DockableControl_SelectionChanged" Theme="{StaticResource CustomDockable}" >
+	  <dc:DockableControl.ItemsSource>
         <m:DockableAssets/>
         <m:DockableAssets/>
         <m:DockableAssets/>

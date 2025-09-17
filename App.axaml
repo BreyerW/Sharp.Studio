@@ -15,20 +15,32 @@
 
 	
   <Application.Resources>
-    <!--<SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPointerOver" Color="rgb(56,56,56)"/>
+	  <SolidColorBrush x:Key="BorderBrush" Color="rgb(77,77,77)"/>
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPointerOver" Color="rgb(56,56,56)"/>
     <SolidColorBrush x:Key="TabItemHeaderBackgroundSelected" Color="rgb(56,56,56)"/>
-    <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselectedPointerOver" Color="rgb(56,56,56)"/>
-    <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselectedPressed" Color="rgb(56,56,56)"/>
-    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPressed" Color="rgb(56,56,56)"/>-->
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselectedPointerOver" Color="rgb(40,40,40)"/>
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselectedPressed" Color="rgb(40,40,40)"/>
+	  <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselected" Color="rgb(40,40,40)"/>
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPressed" Color="rgb(56,56,56)"/>
 	  
     <dt:DockToOrientationConverter x:Key="DockToOrientationConverter"/>
 	  <ControlTheme x:Key="CustomTabItem" TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
 		  <Setter Property="Padding" Value="0" />
-		  <Setter Property="Margin" Value="0" />
+		  <Setter Property="Margin" Value="-20 0 0 0" />
+		  <Setter Property="ZIndex" Value="0" />
+		  <Style Selector="^:selected">
+				  <Setter Property="ZIndex" Value="1"/>
+			  </Style>
+		  <Style Selector="^:not(:selected)">
+			  <Setter Property="ZIndex" Value="0"/>
+		  </Style>
 		  <Setter Property="Template">
+			  
 			  <ControlTemplate>
 					  <Panel>
-						  <Path  Fill="rgb(56,56,56)" Data="{Binding Path=Header.PathData}"/>
+						  <Path StrokeThickness="0" Stroke="{StaticResource BorderBrush}" Fill="{TemplateBinding Background}" Data="{Binding Path=Bounds, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static dt:SimpleConverters.ContentToTabShapeConverter}}"
+  />
+						  <Panel Margin="20 0 20 0">
 							  <ContentPresenter
 								  Name="PART_ContentPresenter"
 								  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -41,6 +53,7 @@
 									  Background="{DynamicResource TabItemHeaderSelectedPipeFill}"
 									  CornerRadius="{DynamicResource ControlCornerRadius}"
 									  IsVisible="False"/>
+						  </Panel>
 					  </Panel>
 			  </ControlTemplate>
 		  </Setter>
@@ -76,7 +89,7 @@
       <Setter Property="ItemsPanel">
         <ItemsPanelTemplate>
 
-			<StackPanel Orientation="{TemplateBinding TabStripPlacement, Converter={StaticResource DockToOrientationConverter}}}">
+			<StackPanel Margin="20 0 0 0" Orientation="{TemplateBinding TabStripPlacement, Converter={StaticResource DockToOrientationConverter}}}">
 				
 			</StackPanel>
 
@@ -93,10 +106,8 @@
                           HorizontalContentAlignment="Stretch"
                           VerticalContentAlignment="Stretch"
                           Content="{Binding Content}"
-                          ContentTemplate="{TemplateBinding SelectedContentTemplate}"
-                          Margin="{TemplateBinding Padding}"
 											  />
-        </DataTemplate>
+        </DataTemplate><!--ContentTemplate="{TemplateBinding SelectedContentTemplate}"-->
       </Setter>
     </ControlTheme>
   </Application.Resources>

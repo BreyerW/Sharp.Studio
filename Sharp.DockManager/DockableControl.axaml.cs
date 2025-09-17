@@ -14,9 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Globalization;
 using Avalonia.Platform;
-using Avalonia.Controls.Shapes;
 
 namespace Sharp.DockManager
 {
@@ -29,55 +27,6 @@ namespace Sharp.DockManager
 		Bottom,
 		Center
 	}
-    public class TabShape : Shape
-    {
-        public TabShape()
-        {
-            Stretch = Stretch.Fill;
-        }
-
-        public Path TabShapePath
-        {
-            get { return (Path)GetValue(TabShapePathProperty); }
-            set { SetValue(TabShapePathProperty, value); }
-        }
-
-        // Using a DependencyProperty as the backing store for TabShapePath.  This enables animation, styling, binding, etc...
-        //public static readonly DependencyProperty TabShapePathProperty =
-       //     DependencyProperty.Register("TabShapePath", typeof(Path), typeof(TabShape), new PropertyMetadata(null));
-
-        public static readonly StyledProperty<Path> TabShapePathProperty =
-                    AvaloniaProperty.Register<TabShape, Path>(nameof(TabShapePath));
-
-        protected override Size MeasureOverride(Size constraint)
-        {
-            if (constraint.Width == double.PositiveInfinity || constraint.Height == double.PositiveInfinity)
-            {
-                return new Size(0,0);
-            }
-            // we will size ourselves to fit the available space
-            return constraint;
-        }
-        protected override Geometry? CreateDefiningGeometry() => GetGeometry();
-
-        private Geometry GetGeometry()
-        {
-            if (TabShapePath != null)
-            {
-                return TabShapePath.Data;
-            }
-            double width = DesiredSize.Width - StrokeThickness;
-
-            double height = 25;
-            double x1 = width - 15;
-            double x2 = width - 10;
-            double x3 = width - 5;
-            double x4 = width - 2.5;
-            double x5 = width;
-
-            return Geometry.Parse(string.Format(CultureInfo.InvariantCulture, "M0,{5} C2.5,{5} 5,0 10,0 15,0 {0},0 {1},0 {2},0 {3},{5} {4},{5}", x1, x2, x3, x4, x5, height));
-        }
-    }
     public partial class DockableControl : TabControl, IStyleable
 	{
 		private static bool isDragging = false;
@@ -115,74 +64,24 @@ namespace Sharp.DockManager
 		{
 			set => draggedItem.Background = value;
 		}
-        public string PathData
-        {
-            get
-            {
-                /*if (TabShapePath != null)
-                {
-                    return TabShapePath.Data;
-                }*/
-                //107.2, 44.8
-                double width = 107.2 - 1;
-
-                double height = 44.8;
-                double x1 = width - 15;
-                double x2 = width - 10;
-                double x3 = width - 5;
-                double x4 = width - 2.5;
-                double x5 = width;
-                return string.Format(CultureInfo.InvariantCulture, "M0,{5} C2.5,{5} 5,0 10,0 15,0 {0},0 {1},0 {2},0 {3},{5} {4},{5}", x1, x2, x3, x4, x5, height);
-            }
-        }
         public DockableTabViewModel TabItems { get; set; } = new();
 		private static int index = 0;
 
-		/// <summary>
-		/// Gets the z-order for one or more windows atomically with respect to each other. In Windows, smaller z-order is higher. If the window is not top level, the z order is returned as -1. 
-		/// </summary>
+
 		private static void UpdateZOrder()
 		{
-			index = 0;
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD))
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
-				if (displayHandle == IntPtr.Zero)
-					displayHandle = Helpers.XOpenDisplay(null);
-
-				var root = Helpers.XDefaultRootWindow(displayHandle);
-				Helpers.XQueryTree(displayHandle, root, out _, out _, out var ptrToChilds, out var count);
-				if (count > 0)
+				var windows = ((IClassicDesktopStyleApplicationLifetime)Application.Current.ApplicationLifetime).Windows.ToArray();
+				index = windows.Length;
+				Window.SortWindowsByZOrder(windows);
+				foreach (var wind in windows)
 				{
-					var childs = MemoryMarshal.CreateReadOnlySpan(ref ptrToChilds, count);
-					foreach (var child in childs)
-					{
-						TestWindowHandle(child);
-					}
+					if (wind != draggedItem)
+						CollectionsMarshal.GetValueRefOrAddDefault(sortedWindows, wind, out _) = index;
+					index--;
 				}
 			}
-			else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-			{
-			}
-			else
-				Helpers.EnumWindows((wnd, param) =>
-				{
-					return TestWindowHandle(wnd);
-				}, IntPtr.Zero);
-		}
-		private static bool TestWindowHandle(IntPtr wnd)
-		{
-			if (draggedItem.TryGetPlatformHandle()?.Handle == wnd)
-			{
-				//skip draggable window
-				index++;
-				return true;
-			}
-			var lifetime = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime);
-			foreach (var wind in lifetime.Windows)
-				if (wind != draggedItem && wind.TryGetPlatformHandle().Handle == wnd)
-					CollectionsMarshal.GetValueRefOrAddDefault(sortedWindows, wind, out _) = index;
-			index++;
-			return true;
 		}
 		static DockableControl()
 		{
@@ -302,24 +201,6 @@ namespace Sharp.DockManager
 						item.ParentCollection = TabItems.Items;
 				}
         }
-
-        //https://github.com/sskodje/wpfchrometabs-mvvm/blob/master/ChromeTabs/TabShape.cs
-        private Geometry GetGeometry()
-		{
-			/*if (TabShapePath != null)
-			{
-				return TabShapePath.Data;
-			}*/
-			double width = DesiredSize.Width - 1;
-
-			double height = 25;
-			double x1 = width - 15;
-			double x2 = width - 10;
-			double x3 = width - 5;
-			double x4 = width - 2.5;
-			double x5 = width;
-			return Geometry.Parse(string.Format(CultureInfo.InvariantCulture, "M0,{5} C2.5,{5} 5,0 10,0 15,0 {0},0 {1},0 {2},0 {3},{5} {4},{5}", x1, x2, x3, x4, x5, height));
-		}
 		private static void PointerPressedOnTabItem(PointerPressedEventArgs e)
 		{
 			var s = ((Control)e.Source).FindAncestorOfType<TabItem>(true);

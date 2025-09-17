@@ -15,29 +15,8 @@ namespace Sharp.Studio
 {
     public class App : Application
     {
-        public string PathData
-        {
-            get
-            {
-                /*if (TabShapePath != null)
-                {
-                    return TabShapePath.Data;
-                }*/
-                //107.2, 44.8
-                double width = 107.2 - 1;
-
-                double height = 44.8;
-                double x1 = width - 15;
-                double x2 = width - 10;
-                double x3 = width - 5;
-                double x4 = width - 2.5;
-                double x5 = width;
-                return string.Format(CultureInfo.InvariantCulture, "M0,{5} C2.5,{5} 5,0 10,0 15,0 {0},0 {1},0 {2},0 {3},{5} {4},{5}", x1, x2, x3, x4, x5, height);
-            }
-        }
         public override void Initialize()
         {
-            
             AvaloniaXamlLoader.Load(this);
         }
 

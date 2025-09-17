@@ -59,11 +59,10 @@
 							HorizontalContentAlignment="Stretch"
 							VerticalContentAlignment="Stretch"
 							Content="{Binding Content}"
-							ContentTemplate="{TemplateBinding SelectedContentTemplate}"
-							Margin="{TemplateBinding Padding}"
 											  >
 				
 			</ContentPresenter>
+			<!--ContentTemplate="{TemplateBinding SelectedContentTemplate}"-->
         </DataTemplate>
       </Setter>
     </ControlTheme>

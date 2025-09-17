@@ -1,9 +1,7 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.LogicalTree;
-using Avalonia.VisualTree;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -59,18 +57,5 @@ namespace Sharp.DockManager
 			else
 				DockableControl.ReplaceControlRequested(toBeReplaced,replacement);
 		}
-
-		internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-
-		[DllImport("libX11.so")]
-		internal static extern IntPtr XOpenDisplay(string name);
-		[DllImport("libX11.so")]
-		internal static extern int XCloseDisplay(IntPtr display);
-		[DllImport("libX11.so")]
-		internal static extern IntPtr XDefaultRootWindow(IntPtr display);
-		[DllImport("libX11.so")]
-		internal static extern int XQueryTree(IntPtr display, IntPtr w, out IntPtr root_return, out IntPtr parent_return, out IntPtr children_return, out int nchildren_return);
-		[DllImport("USER32.DLL")]
-		internal static extern bool EnumWindows(EnumWindowsProc enumFunc, IntPtr lParam);
 	}
 }
