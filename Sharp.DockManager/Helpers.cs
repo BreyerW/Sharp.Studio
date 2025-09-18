@@ -1,10 +1,7 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.LogicalTree;
-using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 
 namespace Sharp.DockManager
 {
@@ -17,11 +14,7 @@ namespace Sharp.DockManager
 			Grid.SetRow(copyTo, Grid.GetRow(source));
 			Grid.SetRowSpan(copyTo, Grid.GetRowSpan(source));
 		}
-		public static void SwapWith<T>(this LinkedListNode<T> first, LinkedListNode<T> second)
-		{
-			first.List.Remove(first);
-			second.List.AddAfter(second, first);
-		}
+
 		//can always use DetachedFrom*Tree to clean up any special containers like Grid with splitters
 		//or listen to on removed event on collections
 		public static void ReplaceWith(this Control toBeReplaced, Control? replacement)

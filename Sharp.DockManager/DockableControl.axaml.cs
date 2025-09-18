@@ -46,26 +46,38 @@ namespace Sharp.DockManager
 		private static PixelPoint screenMousePosOffset;
 
 		private static DockableItem selectedItem;
-		private static Dictionary<Window, int> sortedWindows = new();
-		internal static Border adornedElement = new Border();
+		private static Window[] sortedWindows;
+		protected static Border adornedElement = new Border();
 		internal static Canvas canvas = new Canvas();
-		internal ScrollViewer scroller;
+		protected ScrollViewer scroller;
 		private ItemsPresenter header;
 		private ContentPresenter body;
-		private static IntPtr displayHandle;
 
-		Type IStyleable.StyleKey => typeof(DockableControl);
+        public static readonly StyledProperty<IBrush> PreviewBrushProperty =
+                    AvaloniaProperty.Register<DockableControl, IBrush>(nameof(PreviewBrush));
+
+        public IBrush PreviewBrush
+        {
+            set
+            {
+                draggedItem.Background = value;
+                adornedElement.Background = value;
+                SetValue(PreviewBrushProperty, value);
+            }
+            get
+            {
+                return GetValue(PreviewBrushProperty);
+            }
+        }
+
+        Type IStyleable.StyleKey => typeof(DockableControl);
 		public static Action<Control, Control> ReplaceControlRequested
 		{
 			get;
 			set;
 		}
-		public static SolidColorBrush PreviewBrush
-		{
-			set => draggedItem.Background = value;
-		}
+		
         public DockableTabViewModel TabItems { get; set; } = new();
-		private static int index = 0;
 
 
 		private static void UpdateZOrder()
@@ -73,26 +85,17 @@ namespace Sharp.DockManager
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
 				var windows = ((IClassicDesktopStyleApplicationLifetime)Application.Current.ApplicationLifetime).Windows.ToArray();
-				index = windows.Length;
 				Window.SortWindowsByZOrder(windows);
-				foreach (var wind in windows)
-				{
-					if (wind != draggedItem)
-						CollectionsMarshal.GetValueRefOrAddDefault(sortedWindows, wind, out _) = index;
-					index--;
-				}
+				windows.AsSpan().Reverse();
+				sortedWindows = windows;
 			}
 		}
 		static DockableControl()
 		{
-			PreviewBrush = new SolidColorBrush(Colors.PaleVioletRed, 0.33);
 			InputElement.PointerPressedEvent.AddClassHandler<TabItem>((s, e) =>
 			{
 				e.Handled = true;
-				if (DockManager.GetAllowDrag(s) is false)
-					return;
-			//use hittesting and if tab item is found capture its panel
-				PointerPressedOnTabItem(e);
+				PointerPressedOnTabItem(s,e);
 			});
 			InputElement.PointerMovedEvent.AddClassHandler<Interactive>((s, e) =>
 			{
@@ -108,12 +111,11 @@ namespace Sharp.DockManager
 				if (selectedItem is null || isDragging is false)
 					return;
 				DropTab(e);
-				DropFinished(e);
+				DropFinished();
 				e.Handled = true;
 			});
 			
-			adornedElement.Background = Brushes.PaleVioletRed;
-			adornedElement.Opacity = 0.33;
+			var test = new SolidColorBrush(Colors.LightGreen, 0.33);
 			adornedElement.IsVisible = true;
 			canvas.Children.Add(adornedElement);
 		}
@@ -189,7 +191,6 @@ namespace Sharp.DockManager
 			InitializeComponent();
             TabItems.Items.CollectionChanged += Items_CollectionChanged;
             ItemsSource = TabItems.Items;
-			Background = new SolidColorBrush(new Color(255,56,56,56));
 		}
 
         private void Items_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
@@ -201,19 +202,24 @@ namespace Sharp.DockManager
 						item.ParentCollection = TabItems.Items;
 				}
         }
-		private static void PointerPressedOnTabItem(PointerPressedEventArgs e)
+		private static void PointerPressedOnTabItem(TabItem sender, PointerPressedEventArgs e)
 		{
-			var s = ((Control)e.Source).FindAncestorOfType<TabItem>(true);
-			if (s is null)
-				return;
-			s.ZIndex = int.MaxValue;
-			sourceDockable = s.FindAncestorOfType<DockableControl>();
+			sourceDockable = sender.FindAncestorOfType<DockableControl>();
+			sourceDockable.PointerPressedOnTabItem(sender, e);
+		}
+		protected virtual void PointerPressedOnTabItem(object sender, PointerPressedEventArgs e)
+		{
+			var s = (TabItem)sender;
+			if (!DockManager.GetAllowDrag(s))
+			{
+				DropFinished();
+			}
 			sourceDockable.SelectedItem = s.Content;
 			screenMousePosOffset = s.PointToScreen(e.GetPosition(s)) - s.GetVisualParent().PointToScreen(s.Bounds.Position);
 			selectedItem = s.Content as DockableItem;
 		}
-		
-		private static void DropFinished(PointerReleasedEventArgs e)
+
+        private static void DropFinished()
 		{
 			sourceDockable = null;
 			canvas.IsVisible = false;
@@ -223,7 +229,7 @@ namespace Sharp.DockManager
 			draggedItem.IsVisible = false;
 			isDragging = false;
 		}
-		private static async void PointerMoved(PointerEventArgs e)
+		private static void PointerMoved(PointerEventArgs e)
 		{
 			if (selectedItem is not null && e.GetCurrentPoint(null).Properties.IsLeftButtonPressed)
 			{
@@ -236,8 +242,10 @@ namespace Sharp.DockManager
 				
 				if (tab.Bounds.Contains(scrollerMousePos))
 					return;
-				isDragging = true;
-				UpdateZOrder();
+				//do it only once when starting the drag
+				if(!isDragging)
+                    UpdateZOrder();
+                isDragging = true;
 				
 				var Width = sourceDockable.Bounds.Width;
 				var Height = sourceDockable.Bounds.Height;
@@ -254,13 +262,13 @@ namespace Sharp.DockManager
 			(Control control, Region area) currentTrigger = default;
 
 			Control? hit = null;
-			foreach (var (window, zorder) in sortedWindows.OrderBy(key => key.Value))
+			foreach (var window in sortedWindows)
 			{
 				var pos = window.PointToClient(screenPos);
 				if (pos is { X: 0, Y: 0 })
 					continue;
 
-				hit = window.GetVisualAt(pos, c => c is not Border /*AdornerLayer.GetAdornedElement(c as Visual) is null*/) as Control;
+				hit = window.GetVisualAt(pos, c => c is not Border) as Control;
 				if (hit is not null)
 				{
 					var targetDockable = hit.FindAncestorOfType<DockableControl>(true);
@@ -283,7 +291,7 @@ namespace Sharp.DockManager
 							break;
 						}
 						var dPos = e.GetPosition(targetDockable);
-						if (targetDockable.scroller.Bounds.Contains(dPos))
+						if (allow.Header && targetDockable.scroller.Bounds.Contains(dPos))
 						{
 							Control tab = null;
 							var scrollerPos = e.GetPosition(targetDockable.header.Panel);
@@ -295,7 +303,7 @@ namespace Sharp.DockManager
 									break;
 								}
 							}
-							if (allow.Header && tab is not null && DockManager.GetAllowDrop(tab))
+							if (tab is not null && DockManager.GetAllowDrop(tab))
 							{
 								currentTrigger = (tab, Region.Center);
 							}
@@ -339,25 +347,7 @@ namespace Sharp.DockManager
 							adornerLayer.Children.Add(canvas);
 							AdornerLayer.SetAdornedElement(canvas, adornerTarget);
 
-							var leftTop = new Point(0,0);
-							var leftMid = new Point(0, adornerTarget.Bounds.Height / 2);
-							var rightMid = leftMid.WithX(adornerTarget.Bounds.Width);
-							var topMid = new Point(adornerTarget.Bounds.Width / 2, 0);
-							var bottomMid = topMid.WithY(adornerTarget.Bounds.Height);
-							var bottomRight = new Point(adornerTarget.Bounds.Width, adornerTarget.Bounds.Height);
-						
-							var rcChild = currentTrigger.area switch
-							{
-								Region.Left => new Rect(leftTop, bottomMid),
-								Region.Right => new Rect(topMid, bottomRight),
-								Region.Top => new Rect(leftTop, rightMid),
-								Region.Bottom => new Rect(leftMid, bottomRight),
-								Region.Center => new Rect(leftTop, bottomRight),
-							};
-							adornedElement.Width = rcChild.Width;
-							adornedElement.Height = rcChild.Height;
-							Canvas.SetTop(adornedElement, rcChild.Top);
-							Canvas.SetLeft(adornedElement, rcChild.Left);
+							sourceDockable.PreparePreviewOverlay(adornerTarget, adornedElement, currentTrigger.area);
 						}
 						break;
 					}
@@ -368,7 +358,31 @@ namespace Sharp.DockManager
 			draggedItem.IsVisible = cond;
 			lastTrigger = currentTrigger;
 		}
-		
+		//Can use this to customize if overlay should follow margins/paddings of target
+		//or change color based on some condition like setting red color if target is not allowed 
+		//this is called only when preview is over another window but not when over "empty" space
+		protected virtual void PreparePreviewOverlay(Control adornerTarget, Control adorner, Region area)
+		{
+            var leftTop = new Point(0, 0);
+            var leftMid = new Point(0, adornerTarget.Bounds.Height / 2);
+            var rightMid = leftMid.WithX(adornerTarget.Bounds.Width);
+            var topMid = new Point(adornerTarget.Bounds.Width / 2, 0);
+            var bottomMid = topMid.WithY(adornerTarget.Bounds.Height);
+            var bottomRight = new Point(adornerTarget.Bounds.Width, adornerTarget.Bounds.Height);
+
+            var rcChild = area switch
+            {
+                Region.Left => new Rect(leftTop, bottomMid),
+                Region.Right => new Rect(topMid, bottomRight),
+                Region.Top => new Rect(leftTop, rightMid),
+                Region.Bottom => new Rect(leftMid, bottomRight),
+                Region.Center => new Rect(leftTop, bottomRight),
+            };
+            adorner.Width = rcChild.Width;
+            adorner.Height = rcChild.Height;
+            Canvas.SetTop(adorner, rcChild.Top);
+            Canvas.SetLeft(adorner, rcChild.Left);
+        }
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
         {
             base.OnApplyTemplate(e);
@@ -415,7 +429,9 @@ namespace Sharp.DockManager
 		{
 			sourceDockable.TabItems.Items.Remove(selectedItem);
 			DeleteOldDockableIfEmpty();
+			//TODO: make deep clone method for dockablecontrol so that it looks exactly like source dockable
 			var tab = new DockableControl();
+			tab.Theme = sourceDockable.Theme;
 			tab.TabItems.Items.Add(selectedItem);
 			return tab;
 		}
@@ -453,8 +469,8 @@ namespace Sharp.DockManager
 					}
 					targetDockable.SelectedItem = selectedItem;
 					var count = targetDockable.Items.Count;
-					foreach (var item in targetDockable.header.Panel.Children)
-						item.ZIndex = count--;
+					//foreach (var item in targetDockable.header.Panel.Children)
+					//	item.ZIndex = count--;
 				}
 				else
 				{
