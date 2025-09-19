@@ -15,6 +15,7 @@ namespace Sharp.Studio.Models
 		private void CloseHeader(object sender, Avalonia.Interactivity.RoutedEventArgs e)
 		{
 			ParentCollection.Remove(this);
+
 		}
 		private void Header_PointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
 		{

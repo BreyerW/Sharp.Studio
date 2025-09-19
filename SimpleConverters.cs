@@ -1,14 +1,27 @@
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Presenters;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
+using Sharp.DockManager.ViewModels;
 
-namespace Sharp.DockManager
+namespace Sharp.Studio
 {
     public static class SimpleConverters
     {
+        private static IBrush activeBrush;
+        private static IBrush inactiveLeftToRightBrush;
+        private static IBrush inactiveRightToLeftBrush;
+
+        static SimpleConverters()
+        {
+            Application.Current.TryGetResource("TabItemHeaderBackgroundSelected", Application.Current.ActualThemeVariant, out var resource);
+            activeBrush = (IBrush)resource;
+            Application.Current.TryGetResource("TabHeaderInactiveLeftToRight", Application.Current.ActualThemeVariant, out resource);
+            inactiveLeftToRightBrush = (IBrush)resource;
+            Application.Current.TryGetResource("TabHeaderInactiveRightToLeft", Application.Current.ActualThemeVariant, out resource);
+            inactiveRightToLeftBrush = (IBrush)resource;
+        }
+
         //https://github.com/sskodje/wpfchrometabs-mvvm/blob/master/ChromeTabs/TabShape.cs
         public static FuncValueConverter<Rect, Geometry> ContentToTabShapeConverter { get; } =
         new FuncValueConverter<Rect, Geometry>(value => {
@@ -18,7 +31,7 @@ namespace Sharp.DockManager
             double w = value.Width;
             // Smaller unit, so don't need fractional multipliers.
             double u = 0.1 * h;
-            // HACK: Start before "normal" start of tab.
+            // Start
             double x0 = 0;
             // end of transition
             double x9 = w;
@@ -43,7 +56,6 @@ namespace Sharp.DockManager
             bezier1.Point2 = new Point(x9 - rb, h);
             bezier1.Point3 = new Point(x9, h);
             ps.Add(bezier1);
-
             // "(x0, 0)" is start point.
             PathFigure figure = new PathFigure();
             figure.StartPoint = new Point(x0, h);
@@ -54,5 +66,6 @@ namespace Sharp.DockManager
 
             return geometry;
         });
+
     }
 }

@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.LogicalTree;
-using System.Collections.Generic;
 
 namespace Sharp.DockManager
 {
@@ -14,10 +13,23 @@ namespace Sharp.DockManager
 			Grid.SetRow(copyTo, Grid.GetRow(source));
 			Grid.SetRowSpan(copyTo, Grid.GetRowSpan(source));
 		}
-
-		//can always use DetachedFrom*Tree to clean up any special containers like Grid with splitters
-		//or listen to on removed event on collections
-		public static void ReplaceWith(this Control toBeReplaced, Control? replacement)
+        public static void SetAsColumn(Control c, int column)
+        {
+            Grid.SetRow(c, 0);
+            Grid.SetRowSpan(c, 3);
+            Grid.SetColumn(c, column);
+            Grid.SetColumnSpan(c, 1);
+        }
+        public static void SetAsRow(Control c, int row)
+        {
+            Grid.SetRow(c, row);
+            Grid.SetRowSpan(c, 1);
+            Grid.SetColumn(c, 0);
+            Grid.SetColumnSpan(c, 3);
+        }
+        //can always use DetachedFrom*Tree to clean up any special containers like Grid with splitters
+        //or listen to on removed event on collections
+        public static void ReplaceWith(this Control toBeReplaced, Control? replacement)
 		{
 			var parent = toBeReplaced.GetLogicalParent();
 			if (parent is Panel p)

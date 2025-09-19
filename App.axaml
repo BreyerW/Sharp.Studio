@@ -15,6 +15,21 @@
 
 	
   <Application.Resources>
+	  <LinearGradientBrush x:Key="TabHeaderActive" StartPoint="0%,0%" EndPoint="0%,100%">
+		  <GradientStop Color="rgb(100,100,100)" Offset="0.0"/>
+		  <GradientStop Color="rgb(56,56,56)" Offset="0.5"/>
+		  <GradientStop Color="rgb(56,56,56)" Offset="1.0"/>
+	  </LinearGradientBrush>
+	  <LinearGradientBrush x:Key="TabHeaderInactiveLeftToRight" StartPoint="100%,0%" EndPoint="0%,0%">
+		  <GradientStop Color="rgb(40,40,40)" Offset="0.0"/>
+		  <GradientStop Color="rgb(40,40,40)" Offset="0.66"/>
+		  <GradientStop Color="rgb(0,0,0)" Offset="1.0"/>
+	  </LinearGradientBrush>
+	  <LinearGradientBrush x:Key="TabHeaderInactiveRightToLeft" StartPoint="0%,0%" EndPoint="100%,0%">
+		  <GradientStop Color="rgb(40,40,40)" Offset="0.0"/>
+		  <GradientStop Color="rgb(40,40,40)" Offset="0.66"/>
+		  <GradientStop Color="rgb(0,0,0)" Offset="1.0"/>
+	  </LinearGradientBrush>
 	  <SolidColorBrush x:Key="BorderBrush" Color="rgb(77,77,77)"/>
     <SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPointerOver" Color="rgb(56,56,56)"/>
     <SolidColorBrush x:Key="TabItemHeaderBackgroundSelected" Color="rgb(56,56,56)"/>
@@ -28,17 +43,28 @@
 		  <Setter Property="Padding" Value="0" />
 		  <Setter Property="Margin" Value="-20 0 0 0" />
 		  <Setter Property="ZIndex" Value="0" />
-		  <Style Selector="^:selected">
-				  <Setter Property="ZIndex" Value="1"/>
+		  <Style Selector="^[IsSelected=True]">
+			  <Style Selector="^ Path">
+			    <Setter Property="Fill" Value="{StaticResource TabItemHeaderBackgroundSelected}"/>
 			  </Style>
-		  <Style Selector="^:not(:selected)">
-			  <Setter Property="ZIndex" Value="0"/>
+		  </Style>
+		  <Style Selector="^.leftToRight">
+			  <Style Selector="^ Path">
+				  <Setter Property="Fill" Value="{StaticResource TabHeaderInactiveLeftToRight}"/>
+			  </Style>
+		  </Style>
+		  <Style Selector="^.rightToLeft">
+			  <Style Selector="^ Path">
+				  <Setter Property="Fill" Value="{StaticResource TabHeaderInactiveRightToLeft}"/>
+			  </Style>
 		  </Style>
 		  <Setter Property="Template">
 			  
 			  <ControlTemplate>
 					  <Panel>
-						  <Path StrokeThickness="0" Stroke="{StaticResource BorderBrush}" Fill="{TemplateBinding Background}" Data="{Binding Path=Bounds, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static dt:SimpleConverters.ContentToTabShapeConverter}}"
+						  <!--also change to sharp trapezoid for sample purposes-->
+						  <!--use strokethickness=1? -->
+						  <Path StrokeThickness="0" Stroke="{StaticResource BorderBrush}" Data="{Binding Path=Bounds, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static local:SimpleConverters.ContentToTabShapeConverter}}"
   />
 						  <Panel Margin="20 0 20 0">
 							  <ContentPresenter
@@ -61,7 +87,8 @@
     <ControlTheme TargetType="dt:DockableControl"
         x:Key="CustomDockable">
 		<Setter Property="ItemContainerTheme" Value="{StaticResource CustomTabItem}" />
-      <Setter Property="Template">
+      <Setter Property="Background" Value="rgb(56,56,56)"/>
+		<Setter Property="Template">
         <ControlTemplate>
           <DockPanel Name="panel" LastChildFill="true">
             <DockPanel DockPanel.Dock="{TemplateBinding TabStripPlacement}">
