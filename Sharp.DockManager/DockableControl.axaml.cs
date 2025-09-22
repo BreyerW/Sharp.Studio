@@ -28,11 +28,7 @@ namespace Sharp.DockManager
 		Center,
 		Header
 	}
-	interface IDockable
-	{
-		static abstract DockableControl CreateDockable();
-    }
-    public partial class DockableControl : TabControl, IStyleable, IDockable
+    public partial class DockableControl : TabControl, IStyleable
 	{
 		private static bool isDragging = false;
 		
@@ -463,7 +459,7 @@ namespace Sharp.DockManager
 		{
 			sourceDockable.TabItems.Items.Remove(selectedItem);
 
-			var tab = CreateDockable();
+			var tab = sourceDockable.CreateDockable();
 			tab.Theme = sourceDockable.Theme;
 			tab.TabItems.Items.Add(selectedItem);
 			return tab;
@@ -522,7 +518,7 @@ namespace Sharp.DockManager
 			}
 		}
 
-        public static DockableControl CreateDockable()
+        public virtual DockableControl CreateDockable()
         {
             return new DockableControl();
         }
