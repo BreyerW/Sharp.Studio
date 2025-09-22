@@ -4,8 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:dt="using:Sharp.DockManager"
              xmlns:vms="using:Sharp.DockManager.ViewModels"
-             xmlns:behaviours="using:Sharp.DockManager.Behaviours"
-			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"  
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"  
              x:Class="Sharp.DockManager.DockableControl"
 			 
              >

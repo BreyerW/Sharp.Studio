@@ -6,7 +6,6 @@
              xmlns:vm="using:Sharp.DockManager.Models"
              xmlns:vms="using:Sharp.DockManager.ViewModels"
              xmlns:dt="using:Sharp.DockManager"
-             xmlns:behaviours="using:Sharp.DockManager.Behaviours"
 			 x:Class="Sharp.Studio.App"
 			 RequestedThemeVariant="Dark">
     <Application.DataTemplates>
@@ -43,30 +42,28 @@
 		  <Setter Property="Padding" Value="0" />
 		  <Setter Property="Margin" Value="-20 0 0 0" />
 		  <Setter Property="ZIndex" Value="0" />
-		  <Style Selector="^[IsSelected=True]">
-			  <Style Selector="^ Path">
+		  
+		  <Style Selector="^[IsSelected=True] /template/ Path">
 			    <Setter Property="Fill" Value="{StaticResource TabItemHeaderBackgroundSelected}"/>
-			  </Style>
 		  </Style>
-		  <Style Selector="^.leftToRight">
-			  <Style Selector="^ Path">
+		  <Style Selector="^.leftToRight /template/ Path">
 				  <Setter Property="Fill" Value="{StaticResource TabHeaderInactiveLeftToRight}"/>
-			  </Style>
 		  </Style>
-		  <Style Selector="^.rightToLeft">
-			  <Style Selector="^ Path">
+		  <Style Selector="^.rightToLeft /template/ Path">
 				  <Setter Property="Fill" Value="{StaticResource TabHeaderInactiveRightToLeft}"/>
-			  </Style>
 		  </Style>
+		 <!-- <Style Selector="^ /template/ Path:pointerover">
+			  <Setter x:SetterTargetType="Path" Property="Fill" Value="{DynamicResource ButtonBackgroundPressed}" />
+		  </Style>-->
 		  <Setter Property="Template">
 			  
 			  <ControlTemplate>
 					  <Panel>
 						  <!--also change to sharp trapezoid for sample purposes-->
 						  <!--use strokethickness=1? -->
-						  <Path StrokeThickness="0" Stroke="{StaticResource BorderBrush}" Data="{Binding Path=Bounds, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static local:SimpleConverters.ContentToTabShapeConverter}}"
+						  <Path x:Name="filler" StrokeThickness="0" Stroke="{StaticResource BorderBrush}" Data="{Binding Path=Bounds, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static local:SimpleConverters.ContentToTabShapeConverter}}"
   />
-						  <Panel Margin="20 0 20 0">
+						  <Panel Margin="25 0 25 0">
 							  <ContentPresenter
 								  Name="PART_ContentPresenter"
 								  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -134,7 +131,7 @@
                           VerticalContentAlignment="Stretch"
                           Content="{Binding Content}"
 											  />
-        </DataTemplate><!--ContentTemplate="{TemplateBinding SelectedContentTemplate}"-->
+        </DataTemplate>
       </Setter>
     </ControlTheme>
   </Application.Resources>

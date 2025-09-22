@@ -1,6 +1,11 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.VisualTree;
 
 namespace Sharp.Studio.Views;
 
@@ -33,6 +38,9 @@ public partial class CloseableHeader : UserControl
         }
     }
     public Action<object, Avalonia.Interactivity.RoutedEventArgs> OnClick;
+    private TabItem tab;
+    private Path tabShape;
+    private IBrush oldBrush;
 
     public CloseableHeader()
     {
@@ -40,8 +48,13 @@ public partial class CloseableHeader : UserControl
 		DataContext = this;
     }
 
+
     private void Button_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         OnClick?.Invoke(sender,e);
+    }
+    protected override void OnPointerEntered(PointerEventArgs e)
+    {
+        base.OnPointerEntered(e);
     }
 }
