@@ -42,19 +42,18 @@
 		  <Setter Property="Padding" Value="0" />
 		  <Setter Property="Margin" Value="-20 0 0 0" />
 		  <Setter Property="ZIndex" Value="0" />
-		  
-		  <Style Selector="^[IsSelected=True] /template/ Path">
-			    <Setter Property="Fill" Value="{StaticResource TabItemHeaderBackgroundSelected}"/>
-		  </Style>
 		  <Style Selector="^.leftToRight /template/ Path">
 				  <Setter Property="Fill" Value="{StaticResource TabHeaderInactiveLeftToRight}"/>
 		  </Style>
 		  <Style Selector="^.rightToLeft /template/ Path">
 				  <Setter Property="Fill" Value="{StaticResource TabHeaderInactiveRightToLeft}"/>
 		  </Style>
-		 <!-- <Style Selector="^ /template/ Path:pointerover">
-			  <Setter x:SetterTargetType="Path" Property="Fill" Value="{DynamicResource ButtonBackgroundPressed}" />
-		  </Style>-->
+		  <Style Selector="^[IsSelected=True] /template/ Path">
+			    <Setter Property="Fill" Value="{StaticResource TabItemHeaderBackgroundSelected}"/>
+		  </Style>
+		 <Style Selector="^:pointerover /template/ Path, ^:pressed /template/ Path">
+			  <Setter x:SetterTargetType="Path" Property="Fill" Value="Black" /><!--{DynamicResource ButtonBackgroundPressed}-->
+		  </Style>
 		  <Setter Property="Template">
 			  
 			  <ControlTemplate>
@@ -98,7 +97,14 @@
 												/>
 
               </ScrollViewer>
-              <Button HorizontalAlignment="Right" Content="+" Grid.Column="1"/>
+              <Button  CornerRadius="3" Padding="3" Margin="6" HorizontalAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Grid.Column="1">
+				  <!--<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+					  <title>plus-thick</title>
+					  <path d="M20 14H14V20H10V14H4V10H10V4H14V10H20V14Z" />
+				  </svg>-->
+				  <PathIcon Height="15" Width="15" Foreground="White"  Margin="3 6 3 3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+							   Data="M13 19C13 19.34 13.04 19.67 13.09 20H4C2.9 20 2 19.11 2 18V6C2 4.89 2.89 4 4 4H10L12 6H20C21.1 6 22 6.89 22 8V13.81C21.12 13.3 20.1 13 19 13C15.69 13 13 15.69 13 19M20 18V15H18V18H15V20H18V23H20V20H23V18H20Z"/>
+			  </Button>
             </DockPanel>
             <ContentPresenter
               Margin="{TemplateBinding Margin}"

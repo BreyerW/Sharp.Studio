@@ -179,57 +179,66 @@ namespace Sharp.DockManager
             SelectionChanged += DockableControl_SelectionChanged;
             TabItems.Items.CollectionChanged += Items_CollectionChanged;
             ItemsSource = TabItems.Items;
+			SelectionMode = SelectionMode.Single | SelectionMode.AlwaysSelected;
         }
 
-        protected virtual void DockableControl_SelectionChanged(object? sender, SelectionChangedEventArgs e)
-        {
-			var selectedFound = false;
-			var count = TabItems.Items.Count;
+		internal protected void RecalculateZIndex()
+		{
+            var selectedFound = false;
+            var count = TabItems.Items.Count;
 
             var index = -count;
 
             foreach (var item in TabItems.Items)
-			{
-				var container = (TabItem)this.ContainerFromItem(item);
-				if (container is null)
-					return;
-				container.Classes.Remove("rightToLeft");
+            {
+                var container = (TabItem)this.ContainerFromItem(item);
+                if (container is null)
+                    return;
+                container.Classes.Remove("rightToLeft");
                 container.Classes.Remove("leftToRight");
-                if (container.IsSelected)
-				{
-					selectedFound = true;
-					index = count;
+                if (item == SelectedItem)
+                {
+                    selectedFound = true;
+                    index = count;
                     container.ZIndex = index;
                 }
-				else if (!selectedFound)
-				{
-					index++;
+                else if (!selectedFound)
+                {
+                    index++;
                     container.ZIndex = index;
-					container.Classes.Add("rightToLeft");
+                    container.Classes.Add("rightToLeft");
                 }
-				else if (selectedFound)
-				{
-					index--;
+                else if (selectedFound)
+                {
+                    index--;
                     container.ZIndex = index;
                     container.Classes.Add("leftToRight");
                 }
-			}
+            }
         }
-
-        private void Items_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        protected virtual void DockableControl_SelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
-			if(e.NewItems != null)
-				foreach (var newItem in e.NewItems)
-				{
-					if (newItem is DockableItem item)
-						item.ParentCollection = TabItems.Items;
-				}
-			DeleteOldDockableIfEmpty();
+            RecalculateZIndex();
+        }
+		protected override void ContainerIndexChangedOverride(Control container, int oldIndex, int newIndex)
+        {
+            base.ContainerIndexChangedOverride(container, oldIndex, newIndex);
+			RecalculateZIndex();
         }
         protected override void ContainerForItemPreparedOverride(Control container, object? item, int index)
         {
             base.ContainerForItemPreparedOverride(container, item, index);
-			DockableControl_SelectionChanged(this, new SelectionChangedEventArgs(null,null,null));
+			RecalculateZIndex();
+        }
+        private void Items_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (e.NewItems != null)
+                foreach (var newItem in e.NewItems)
+                {
+                    if (newItem is DockableItem item)
+                        item.ParentCollection = TabItems.Items;
+                }
+            DeleteOldDockableIfEmpty();
         }
         private static void PointerPressedOnTabItem(TabItem sender, PointerPressedEventArgs e)
 		{
@@ -239,9 +248,10 @@ namespace Sharp.DockManager
 		protected virtual void PointerPressedOnTabItem(object sender, PointerPressedEventArgs e)
 		{
 			var s = (TabItem)sender;
-			if (!DockManager.GetAllowDrag(s))
+			if (!DockManager.GetAllowDrag(((DockableItem)s.Header).Header))
 			{
 				DropFinished();
+				return;
 			}
 			sourceDockable.SelectedItem = s.Content;
 			screenMousePosOffset = s.PointToScreen(e.GetPosition(s)) - s.GetVisualParent().PointToScreen(s.Bounds.Position);
@@ -250,6 +260,8 @@ namespace Sharp.DockManager
 
         private static void DropFinished()
 		{
+            if (sourceDockable.TabItems.Items.Count > 0)
+                sourceDockable.RecalculateZIndex();
 			sourceDockable = null;
 			canvas.IsVisible = false;
 			selectedItem = null;
@@ -272,8 +284,8 @@ namespace Sharp.DockManager
 				if (tab.Bounds.Contains(scrollerMousePos))
 					return;
 				//do it only once when starting the drag
-				if(!isDragging)
-                    UpdateZOrder();
+				if (!isDragging)
+					UpdateZOrder();
                 isDragging = true;
 				
 				var Width = sourceDockable.Bounds.Width;
@@ -458,8 +470,7 @@ namespace Sharp.DockManager
 		private static DockableControl PrepareNewDockableControl()
 		{
 			sourceDockable.TabItems.Items.Remove(selectedItem);
-
-			var tab = sourceDockable.CreateDockable();
+            var tab = sourceDockable.CreateDockable();
 			tab.Theme = sourceDockable.Theme;
 			tab.TabItems.Items.Add(selectedItem);
 			return tab;
@@ -489,7 +500,7 @@ namespace Sharp.DockManager
 					else
 					{
 						sourceDockable.TabItems.Items.Remove(selectedItem);
-						targetDockable.TabItems.Items.Add(selectedItem);
+                        targetDockable.TabItems.Items.Add(selectedItem);
 					}
 					targetDockable.SelectedItem = selectedItem;
 				}

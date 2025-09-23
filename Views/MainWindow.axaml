@@ -20,6 +20,8 @@
         <m:DockableAssets/>
         <m:DockableAssets/>
         <m:DockableAssets/>
+		  <m:DockableAssets/>
+		  <m:DockableAssets/>
       </dc:DockableControl.ItemsSource>
     </dc:DockableControl>
 </Window>

@@ -1,11 +1,10 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.VisualTree;
+using Sharp.DockManager;
 
 namespace Sharp.Studio.Views;
 
@@ -37,7 +36,8 @@ public partial class CloseableHeader : UserControl
             SetValue(RotationProperty, value);
         }
     }
-    public Action<object, Avalonia.Interactivity.RoutedEventArgs> OnClick;
+    public Action<object> OnClickClose;
+    public Action<object> OnTogglePin;
     private TabItem tab;
     private Path tabShape;
     private IBrush oldBrush;
@@ -51,10 +51,23 @@ public partial class CloseableHeader : UserControl
 
     private void Button_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        OnClick?.Invoke(sender,e);
+        OnClickClose?.Invoke(sender);
     }
     protected override void OnPointerEntered(PointerEventArgs e)
     {
         base.OnPointerEntered(e);
+    }
+
+    //maybe try bubble/tunnel events?
+    private void ToggleButton_Checked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        DockManager.DockManager.SetAllowDrag(this, false);
+        OnTogglePin?.Invoke(sender);
+    }
+
+    private void ToggleButton_Unchecked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        DockManager.DockManager.SetAllowDrag(this, true);
+        OnTogglePin?.Invoke(sender);
     }
 }

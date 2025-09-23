@@ -32,9 +32,9 @@ namespace Sharp.DockManager
 			AvaloniaProperty.RegisterAttached<DockManager, DockableControl, bool>("AllowBottomDrop", true, true, BindingMode.TwoWay);
 
 		public static readonly AttachedProperty<bool> AllowDropProperty =
-			AvaloniaProperty.RegisterAttached<DockManager, TabItem, bool>("AllowDrop", true, true, BindingMode.TwoWay);
+			AvaloniaProperty.RegisterAttached<DockManager, Control, bool>("AllowDrop", true, true, BindingMode.TwoWay);
 		public static readonly AttachedProperty<bool> AllowDragProperty =
-			AvaloniaProperty.RegisterAttached<DockManager, TabItem, bool>("AllowDrag", true, true, BindingMode.TwoWay);
+			AvaloniaProperty.RegisterAttached<DockManager, Control, bool>("AllowDrag", true, true, BindingMode.TwoWay);
 
 		/// <summary>
 		/// Gets the value of the IsDropArea attached property on the specified control.
