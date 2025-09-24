@@ -11,7 +11,6 @@ using Avalonia.Styling;
 using Avalonia.VisualTree;
 using Sharp.DockManager.ViewModels;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia.Platform;
@@ -28,7 +27,7 @@ namespace Sharp.DockManager
 		Center,
 		Header
 	}
-    public partial class DockableControl : TabControl, IStyleable
+    public abstract partial  class DockableControl : TabControl, IStyleable
 	{
 		private static bool isDragging = false;
 		
@@ -529,9 +528,6 @@ namespace Sharp.DockManager
 			}
 		}
 
-        public virtual DockableControl CreateDockable()
-        {
-            return new DockableControl();
-        }
+		public abstract DockableControl CreateDockable();
     }
 }

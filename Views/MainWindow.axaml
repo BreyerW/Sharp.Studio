@@ -14,14 +14,15 @@
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
-  <dc:DockableControl PreviewBrush="rgba(144,238,144,0.33)" x:Name="dockable" SelectionChanged="DockableControl_SelectionChanged" Theme="{StaticResource CustomDockable}" >
-	  <dc:DockableControl.ItemsSource>
-        <m:DockableAssets/>
-        <m:DockableAssets/>
-        <m:DockableAssets/>
-        <m:DockableAssets/>
+  <v:ComplexDockable PreviewBrush="rgba(144,238,144,0.33)" x:Name="dockable" SelectionChanged="DockableControl_SelectionChanged" Theme="{StaticResource CustomComplexDockable}" >
+	  <v:ComplexDockable.ItemsSource>
 		  <m:DockableAssets/>
 		  <m:DockableAssets/>
-      </dc:DockableControl.ItemsSource>
-    </dc:DockableControl>
+		  <m:DockableAssets/>
+		  <m:DockableAssets/>
+		  <m:DockableAssets/>
+		  <m:DockableAssets/>
+	  </v:ComplexDockable.ItemsSource>
+    
+</v:ComplexDockable>
 </Window>

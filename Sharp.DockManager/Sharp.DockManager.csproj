@@ -21,5 +21,8 @@
     <Compile Update="DockableControl.axaml.cs">
       <DependentUpon>DockableControl.axaml</DependentUpon>
     </Compile>
+    <Compile Update="DefaultDockableControl.axaml.cs">
+      <DependentUpon>DefaultDockableControl.axaml</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>

@@ -1,7 +1,10 @@
+using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
+using Sharp.DockManager;
 using Sharp.DockManager.ViewModels;
 
 namespace Sharp.Studio
@@ -24,7 +27,8 @@ namespace Sharp.Studio
 
         //https://github.com/sskodje/wpfchrometabs-mvvm/blob/master/ChromeTabs/TabShape.cs
         public static FuncValueConverter<Rect, Geometry> ContentToTabShapeConverter { get; } =
-        new FuncValueConverter<Rect, Geometry>(value => {
+        new FuncValueConverter<Rect, Geometry>(value =>
+        {
 
             var ps = new PathSegments();
             double h = value.Height;
@@ -66,6 +70,11 @@ namespace Sharp.Studio
 
             return geometry;
         });
-
+        public static FuncMultiValueConverter<object, (DockableControl dockable, object parameter)> ParametersToTupleConverter { get; } =
+        new FuncMultiValueConverter<object, (DockableControl dockable, object parameter)>(value =>
+        {
+            var parameters = value.ToArray();
+            return ((DockableControl)parameters[1], parameters[1]);
+        });
     }
 }

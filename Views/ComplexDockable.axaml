@@ -1,0 +1,162 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:l="using:Sharp.Studio.Views"
+			 xmlns:vm="using:Sharp.Studio.ViewModels"
+			 xmlns:s="using:Sharp.Studio"
+			 xmlns:dt="using:Sharp.DockManager"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Sharp.Studio.Views.ComplexDockable"
+>
+	<UserControl.DataContext>
+		<vm:ComplexDockableViewModel />
+	</UserControl.DataContext>
+<UserControl.Resources>
+   <LinearGradientBrush x:Key="TabHeaderActive" StartPoint="0%,0%" EndPoint="0%,100%">
+		  <GradientStop Color="rgb(100,100,100)" Offset="0.0"/>
+		  <GradientStop Color="rgb(56,56,56)" Offset="0.5"/>
+		  <GradientStop Color="rgb(56,56,56)" Offset="1.0"/>
+	  </LinearGradientBrush>
+	  <LinearGradientBrush x:Key="TabHeaderInactiveLeftToRight" StartPoint="100%,0%" EndPoint="0%,0%">
+		  <GradientStop Color="rgb(40,40,40)" Offset="0.0"/>
+		  <GradientStop Color="rgb(40,40,40)" Offset="0.66"/>
+		  <GradientStop Color="rgb(0,0,0)" Offset="1.0"/>
+	  </LinearGradientBrush>
+	  <LinearGradientBrush x:Key="TabHeaderInactiveRightToLeft" StartPoint="0%,0%" EndPoint="100%,0%">
+		  <GradientStop Color="rgb(40,40,40)" Offset="0.0"/>
+		  <GradientStop Color="rgb(40,40,40)" Offset="0.66"/>
+		  <GradientStop Color="rgb(0,0,0)" Offset="1.0"/>
+	  </LinearGradientBrush>
+	  <SolidColorBrush x:Key="BorderBrush" Color="rgb(77,77,77)"/>
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPointerOver" Color="rgb(56,56,56)"/>
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelected" Color="rgb(56,56,56)"/>
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselectedPointerOver" Color="rgb(40,40,40)"/>
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselectedPressed" Color="rgb(40,40,40)"/>
+	  <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselected" Color="rgb(40,40,40)"/>
+    <SolidColorBrush x:Key="TabItemHeaderBackgroundSelectedPressed" Color="rgb(56,56,56)"/>
+	  
+    <ControlTheme x:Key="CustomComplexTabItem" TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+		  <Setter Property="Padding" Value="0" />
+		  <Setter Property="Margin" Value="-20 0 0 0" />
+		  <Setter Property="ZIndex" Value="0" />
+		  <Style Selector="^.leftToRight /template/ Path">
+				  <Setter Property="Fill" Value="{StaticResource TabHeaderInactiveLeftToRight}"/>
+		  </Style>
+		  <Style Selector="^.rightToLeft /template/ Path">
+				  <Setter Property="Fill" Value="{StaticResource TabHeaderInactiveRightToLeft}"/>
+		  </Style>
+		  <Style Selector="^[IsSelected=True] /template/ Path">
+			    <Setter Property="Fill" Value="{StaticResource TabItemHeaderBackgroundSelected}"/>
+		  </Style>
+		 <Style Selector="^:pointerover /template/ Path, ^:pressed /template/ Path">
+			  <Setter x:SetterTargetType="Path" Property="Fill" Value="Black" /><!--{DynamicResource ButtonBackgroundPressed}-->
+		  </Style>
+		  <Setter Property="Template">
+			  
+			  <ControlTemplate>
+					  <Panel>
+						  <!--also change to sharp trapezoid for sample purposes-->
+						  <!--use strokethickness=1? -->
+						  <Path x:Name="filler" StrokeThickness="0" Stroke="{StaticResource BorderBrush}" Data="{Binding Path=Bounds, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static s:SimpleConverters.ContentToTabShapeConverter}}"
+  />
+						  <Panel Margin="25 0 25 0">
+							  <ContentPresenter
+								  Name="PART_ContentPresenter"
+								  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+								  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+								  Content="{TemplateBinding Header}"
+								  ContentTemplate="{TemplateBinding HeaderTemplate}"
+								  RecognizesAccessKey="True"
+                />
+							  <Border Name="PART_SelectedPipe"
+									  Background="{DynamicResource TabItemHeaderSelectedPipeFill}"
+									  CornerRadius="{DynamicResource ControlCornerRadius}"
+									  IsVisible="False"/>
+						  </Panel>
+					  </Panel>
+			  </ControlTemplate>
+		  </Setter>
+		  </ControlTheme>
+    <ControlTheme TargetType="l:ComplexDockable"
+        x:Key="CustomComplexDockable">
+		<Setter Property="ItemContainerTheme" Value="{StaticResource CustomComplexTabItem}" />
+      <Setter Property="Background" Value="rgb(56,56,56)"/>
+		<Setter Property="Template">
+        <ControlTemplate>
+          <DockPanel Name="panel" LastChildFill="true">
+            <DockPanel DockPanel.Dock="{TemplateBinding TabStripPlacement}">
+              <ScrollViewer DockPanel.Dock="Left" Name="scroller" Background="Transparent"
+                    HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden">
+
+                <ItemsPresenter
+                        Name="PART_ItemsPresenter"
+                        ItemsPanel="{TemplateBinding ItemsPanel}"
+												/>
+
+              </ScrollViewer>
+              <Button  CornerRadius="3" Padding="3" Margin="6" HorizontalAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Grid.Column="1">
+				  <!--<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+					  <title>plus-thick</title>
+					  <path d="M20 14H14V20H10V14H4V10H10V4H14V10H20V14Z" />
+				  </svg>-->
+				  <PathIcon Height="15" Width="15" Foreground="White"  Margin="3 6 3 3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+							   Data="M13 19C13 19.34 13.04 19.67 13.09 20H4C2.9 20 2 19.11 2 18V6C2 4.89 2.89 4 4 4H10L12 6H20C21.1 6 22 6.89 22 8V13.81C21.12 13.3 20.1 13 19 13C15.69 13 13 15.69 13 19M20 18V15H18V18H15V20H18V23H20V20H23V18H20Z"/>
+				  <Button.Flyout>
+						  <MenuFlyout Placement="LeftEdgeAlignedTop" ItemsSource="{Binding CreateTabMenuItems}">
+							  <MenuFlyout.ItemContainerTheme>
+								  <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}"
+									x:DataType="vm:TabFactoryViewModel">
+
+									  <Setter Property="Header" Value="{Binding Header}"/>
+									  <Setter Property="ItemsSource" Value="{Binding Items}"/>
+									  <Setter Property="Command" Value="{Binding AddTab}"/>
+									  <Setter Property="CommandParameter" Value="{Binding CommandParameter}">
+										  <!--<Setter.Value>
+												<MultiBinding Converter="{x:Static s:SimpleConverters.ParametersToTupleConverter}">
+												  <Binding Path="CommandParameter" />
+												</MultiBinding>
+										  </Setter.Value>-->
+									  </Setter>
+								  </ControlTheme>
+							  </MenuFlyout.ItemContainerTheme>
+						  </MenuFlyout>
+				  </Button.Flyout>
+			  </Button>
+            </DockPanel>
+            <ContentPresenter
+              Margin="{TemplateBinding Margin}"
+              Padding="{TemplateBinding Padding}"
+              Background="{TemplateBinding Background}"
+              Name="PART_SelectedContentHost"
+              Content="{TemplateBinding SelectedItem}"
+              ContentTemplate="{TemplateBinding ContentTemplate}"/>
+          </DockPanel>
+        </ControlTemplate>
+      </Setter>
+      <Setter Property="ItemsPanel">
+        <ItemsPanelTemplate>
+
+			<StackPanel Margin="20 0 0 0" Orientation="{TemplateBinding TabStripPlacement, Converter={StaticResource DockToOrientationConverter}}}">
+				
+			</StackPanel>
+
+        </ItemsPanelTemplate>
+      </Setter>
+      <Setter Property="ItemTemplate">
+        <DataTemplate>
+          <ContentPresenter Content="{Binding Header}"  HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        </DataTemplate>
+      </Setter>
+      <Setter Property="ContentTemplate">
+        <DataTemplate>
+          <ContentPresenter
+                          HorizontalContentAlignment="Stretch"
+                          VerticalContentAlignment="Stretch"
+                          Content="{Binding Content}"
+											  />
+        </DataTemplate>
+      </Setter>
+    </ControlTheme>
+</UserControl.Resources>
+</UserControl>

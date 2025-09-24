@@ -20,5 +20,8 @@
     <Compile Update="Views\CloseableHeader.axaml.cs">
       <DependentUpon>CloseableHeader.axaml</DependentUpon>
     </Compile>
+    <Compile Update="Views\ComplexDockable.axaml.cs">
+      <DependentUpon>ComplexDockable.axaml</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>
