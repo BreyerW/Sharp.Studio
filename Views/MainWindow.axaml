@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:m="using:Sharp.Studio.Models"
         xmlns:v="using:Sharp.Studio.Views"
+		xmlns:s="using:Sharp.Studio"
         xmlns:vm="using:Sharp.Studio.ViewModels"
         xmlns:vms="using:Sharp.DockManager.ViewModels"
         xmlns:dc="using:Sharp.DockManager"
@@ -14,15 +15,16 @@
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
-  <v:ComplexDockable PreviewBrush="rgba(144,238,144,0.33)" x:Name="dockable" SelectionChanged="DockableControl_SelectionChanged" Theme="{StaticResource CustomComplexDockable}" >
-	  <v:ComplexDockable.ItemsSource>
-		  <m:DockableAssets/>
-		  <m:DockableAssets/>
-		  <m:DockableAssets/>
-		  <m:DockableAssets/>
-		  <m:DockableAssets/>
-		  <m:DockableAssets/>
-	  </v:ComplexDockable.ItemsSource>
-    
-</v:ComplexDockable>
+
+	<v:ComplexDockable PreviewBrush="rgba(144,238,144,0.33)" Theme="{StaticResource CustomComplexDockable}" >
+		<v:ComplexDockable.ItemsSource>
+			<m:DockableAssets/>
+			<m:DockableAssets/>
+			<m:DockableAssets/>
+			<m:DockableAssets/>
+			<m:DockableAssets/>
+			<m:DockableAssets/>
+		</v:ComplexDockable.ItemsSource>
+
+	</v:ComplexDockable>
 </Window>

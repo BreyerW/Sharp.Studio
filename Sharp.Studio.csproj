@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
@@ -17,11 +17,17 @@
     <PackageReference Include="SharpHook" Version="5.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="Views\FirstView.axaml.cs">
+      <DependentUpon>FirstView.axaml</DependentUpon>
+    </Compile>
     <Compile Update="Views\CloseableHeader.axaml.cs">
       <DependentUpon>CloseableHeader.axaml</DependentUpon>
     </Compile>
-    <Compile Update="Views\ComplexDockable.axaml.cs">
-      <DependentUpon>ComplexDockable.axaml</DependentUpon>
+    <Compile Update="Views\ComplexDockableControl.axaml.cs">
+      <DependentUpon>ComplexDockableControl.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\SecondView.axaml.cs">
+      <DependentUpon>SecondView.axaml</DependentUpon>
     </Compile>
   </ItemGroup>
 </Project>

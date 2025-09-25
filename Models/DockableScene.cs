@@ -8,8 +8,8 @@ namespace Sharp.Studio.Models
 	{
 		public DockableScene()
 		{
-			Header = new CloseableHeader() { Text = "Scene", Rotation = 90};
-			Content = new SceneView();
+			Header = new CloseableHeader() { Text = "Scene"};
+			Content = new SecondView();
 		}
 	}
 }

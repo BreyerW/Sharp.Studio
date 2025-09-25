@@ -10,7 +10,7 @@ namespace Sharp.Studio.Models
 		public DockableAssets()
 		{
 			Header = new CloseableHeader() { Text="Assets", OnClickClose = CloseHeader, OnTogglePin = UnOrPinHeader };
-			Content = new AssetsView();
+			Content = new FirstView();
 		}
 		private void CloseHeader(object sender)
 		{

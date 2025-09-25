@@ -2,17 +2,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-			 xmlns:l="using:Sharp.Studio.Views"
+			 xmlns:l="clr-namespace:Sharp.Studio.Views"
 			 xmlns:vm="using:Sharp.Studio.ViewModels"
 			 xmlns:s="using:Sharp.Studio"
 			 xmlns:dt="using:Sharp.DockManager"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Sharp.Studio.Views.ComplexDockable"
 >
-	<UserControl.DataContext>
-		<vm:ComplexDockableViewModel />
-	</UserControl.DataContext>
 <UserControl.Resources>
+	<dt:DockToOrientationConverter x:Key="DockToOrientationConverter"/>
    <LinearGradientBrush x:Key="TabHeaderActive" StartPoint="0%,0%" EndPoint="0%,100%">
 		  <GradientStop Color="rgb(100,100,100)" Offset="0.0"/>
 		  <GradientStop Color="rgb(56,56,56)" Offset="0.5"/>
@@ -85,8 +83,11 @@
 		<Setter Property="Template">
         <ControlTemplate>
           <DockPanel Name="panel" LastChildFill="true">
-            <DockPanel DockPanel.Dock="{TemplateBinding TabStripPlacement}">
-              <ScrollViewer DockPanel.Dock="Left" Name="scroller" Background="Transparent"
+            <Panel DockPanel.Dock="{TemplateBinding TabStripPlacement}">
+				
+              <ScrollViewer Name="scroller" Background="Transparent"
+					HorizontalAlignment="Stretch"
+					VerticalAlignment="Center"		
                     HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden">
 
                 <ItemsPresenter
@@ -95,7 +96,7 @@
 												/>
 
               </ScrollViewer>
-              <Button  CornerRadius="3" Padding="3" Margin="6" HorizontalAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Grid.Column="1">
+              <Button CornerRadius="3" Padding="3" Margin="6" HorizontalAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center">
 				  <!--<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
 					  <title>plus-thick</title>
 					  <path d="M20 14H14V20H10V14H4V10H10V4H14V10H20V14Z" />
@@ -103,27 +104,23 @@
 				  <PathIcon Height="15" Width="15" Foreground="White"  Margin="3 6 3 3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
 							   Data="M13 19C13 19.34 13.04 19.67 13.09 20H4C2.9 20 2 19.11 2 18V6C2 4.89 2.89 4 4 4H10L12 6H20C21.1 6 22 6.89 22 8V13.81C21.12 13.3 20.1 13 19 13C15.69 13 13 15.69 13 19M20 18V15H18V18H15V20H18V23H20V20H23V18H20Z"/>
 				  <Button.Flyout>
-						  <MenuFlyout Placement="LeftEdgeAlignedTop" ItemsSource="{Binding CreateTabMenuItems}">
-							  <MenuFlyout.ItemContainerTheme>
-								  <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}"
-									x:DataType="vm:TabFactoryViewModel">
+					  <MenuFlyout Placement="LeftEdgeAlignedTop" ItemsSource="{Binding CreateTabMenuItems}">
+						  <MenuFlyout.ItemContainerTheme>
+							  <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}"
+								x:DataType="vm:TabFactoryViewModel">
 
-									  <Setter Property="Header" Value="{Binding Header}"/>
-									  <Setter Property="ItemsSource" Value="{Binding Items}"/>
-									  <Setter Property="Command" Value="{Binding AddTab}"/>
-									  <Setter Property="CommandParameter" Value="{Binding CommandParameter}">
-										  <!--<Setter.Value>
-												<MultiBinding Converter="{x:Static s:SimpleConverters.ParametersToTupleConverter}">
-												  <Binding Path="CommandParameter" />
-												</MultiBinding>
-										  </Setter.Value>-->
-									  </Setter>
-								  </ControlTheme>
-							  </MenuFlyout.ItemContainerTheme>
-						  </MenuFlyout>
+								  <Setter Property="Header" Value="{Binding Header}"/>
+								  <Setter Property="ItemsSource" Value="{Binding Items}"/>
+								  <Setter Property="Command" Value="{Binding $parent[l:ComplexDockable].AddTabCommand}"/>
+									  <!--possible bug? i had to use clr-namespace: to fix this instead of using: seems to be related https://github.com/AvaloniaUI/Avalonia/issues/8367-->
+								  <Setter Property="CommandParameter" Value="{Binding CommandParameter}">
+								  </Setter>
+							  </ControlTheme>
+						  </MenuFlyout.ItemContainerTheme>
+					  </MenuFlyout>
 				  </Button.Flyout>
 			  </Button>
-            </DockPanel>
+            </Panel>
             <ContentPresenter
               Margin="{TemplateBinding Margin}"
               Padding="{TemplateBinding Padding}"

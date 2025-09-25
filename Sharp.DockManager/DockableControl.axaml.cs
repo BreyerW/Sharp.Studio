@@ -27,7 +27,7 @@ namespace Sharp.DockManager
 		Center,
 		Header
 	}
-    public abstract partial  class DockableControl : TabControl, IStyleable
+    public abstract partial  class DockableControl : TabControl
 	{
 		private static bool isDragging = false;
 		
@@ -70,7 +70,6 @@ namespace Sharp.DockManager
             }
         }
 
-        Type IStyleable.StyleKey => typeof(DockableControl);
 		public static Action<Control, Control> ReplaceControlRequested
 		{
 			get;
@@ -109,7 +108,10 @@ namespace Sharp.DockManager
 			InputElement.PointerReleasedEvent.AddClassHandler<Interactive>((s, e) =>
 			{
 				if (selectedItem is null || isDragging is false)
-					return;
+				{
+                    DropFinished();
+                    return;
+				}
 				DropTab(e);
 				DropFinished();
 				e.Handled = true;
@@ -259,7 +261,7 @@ namespace Sharp.DockManager
 
         private static void DropFinished()
 		{
-            if (sourceDockable.TabItems.Items.Count > 0)
+            if (sourceDockable?.TabItems.Items.Count > 0)
                 sourceDockable.RecalculateZIndex();
 			sourceDockable = null;
 			canvas.IsVisible = false;
