@@ -32,6 +32,8 @@ public sealed partial class ComplexDockable : DockableControl
 
         public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
     }
+    private static Window mainWindow;
+
     public static readonly StyledProperty<ICommand> AddTabCommandProperty =
         AvaloniaProperty.Register<ComplexDockable, ICommand>(nameof(AddTabCommand));
 
@@ -46,6 +48,11 @@ public sealed partial class ComplexDockable : DockableControl
         DataContext = new ComplexDockableViewModel();
         AddTabCommand = new RelayCommand(AddTab);
     }
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        mainWindow ??= (Window)VisualRoot;
+    }
     private void AddTab(object parameter)
     {
         var factory = (Func<DockableItem>)parameter;
@@ -55,5 +62,9 @@ public sealed partial class ComplexDockable : DockableControl
     {
         return new ComplexDockable();
     }
-    
+    public override void CloseWindowRequested(Window win)
+    {
+        //if (win != mainWindow)
+          //  win.Close();
+    }
 }

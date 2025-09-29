@@ -14,6 +14,8 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia.Platform;
+using HarfBuzzSharp;
+using System.Collections.Generic;
 
 namespace Sharp.DockManager
 {
@@ -45,10 +47,10 @@ namespace Sharp.DockManager
 		protected static DockableControl sourceDockable = null;
 		private static PixelPoint screenMousePosOffset;
 
-		private static DockableItem selectedItem;
+		protected static List<DockableItem> selectedItems = new ();
 		private static Window[] sortedWindows;
-		protected static Border adornedElement = new Border();
-		internal static Canvas canvas = new Canvas();
+		protected static Border adornedElement = new ();
+		internal static Canvas canvas = new ();
 		protected ScrollViewer scroller;
 		private ItemsPresenter header;
 		private ContentPresenter body;
@@ -98,7 +100,7 @@ namespace Sharp.DockManager
 			});
 			InputElement.PointerMovedEvent.AddClassHandler<Interactive>((s, e) =>
 			{
-				if (selectedItem is null)
+				if (selectedItems is { Count: 0 })
 					return;
 				PointerMoved(e);
 				if(isDragging)
@@ -107,7 +109,7 @@ namespace Sharp.DockManager
 			});
 			InputElement.PointerReleasedEvent.AddClassHandler<Interactive>((s, e) =>
 			{
-				if (selectedItem is null || isDragging is false)
+				if (selectedItems is { Count: 0 } || isDragging is false)
 				{
                     DropFinished();
                     return;
@@ -146,9 +148,9 @@ namespace Sharp.DockManager
 		private static void SplitTabControl(Control existing, Control added, Region dockForAdded)
 		{
 			var grid=GridFactory();
-
-			existing.ReplaceWith(grid);
 			Helpers.CopyGridProperties(existing, grid);
+			existing.ReplaceWith(grid);
+			
 			var splitter = SplitterFactory(2, dockForAdded is Region.Left or Region.Right);
 			grid.Children.Add(existing);
 			grid.Children.Add(splitter);
@@ -182,7 +184,6 @@ namespace Sharp.DockManager
             ItemsSource = TabItems.Items;
 			SelectionMode = SelectionMode.Single | SelectionMode.AlwaysSelected;
         }
-
 		internal protected void RecalculateZIndex()
 		{
             var selectedFound = false;
@@ -256,16 +257,19 @@ namespace Sharp.DockManager
 			}
 			sourceDockable.SelectedItem = s.Content;
 			screenMousePosOffset = s.PointToScreen(e.GetPosition(s)) - s.GetVisualParent().PointToScreen(s.Bounds.Position);
-			selectedItem = s.Content as DockableItem;
+			selectedItems.Clear();
+			selectedItems.Add(s.Content as DockableItem);
 		}
 
         private static void DropFinished()
 		{
-            if (sourceDockable?.TabItems.Items.Count > 0)
-                sourceDockable.RecalculateZIndex();
+			if (sourceDockable?.TabItems.Items.Count > 0)
+			{
+				sourceDockable.RecalculateZIndex();
+			}
 			sourceDockable = null;
 			canvas.IsVisible = false;
-			selectedItem = null;
+			selectedItems.Clear();
 			lastTrigger = default;
 			screenMousePosOffset = default;
 			draggedItem.IsVisible = false;
@@ -273,7 +277,7 @@ namespace Sharp.DockManager
 		}
 		private static void PointerMoved(PointerEventArgs e)
 		{
-			if (selectedItem is not null && e.GetCurrentPoint(null).Properties.IsLeftButtonPressed)
+			if (selectedItems is { Count : not 0 } && e.Properties.IsLeftButtonPressed)
 			{
 				if (sourceDockable.scroller is null)
 					return;
@@ -286,9 +290,11 @@ namespace Sharp.DockManager
 					return;
 				//do it only once when starting the drag
 				if (!isDragging)
+				{
 					UpdateZOrder();
+					sourceDockable.OnStartDrag(e);
+                }
                 isDragging = true;
-				
 				var Width = sourceDockable.Bounds.Width;
 				var Height = sourceDockable.Bounds.Height;
 
@@ -425,6 +431,26 @@ namespace Sharp.DockManager
             Canvas.SetTop(adorner, rcChild.Top);
             Canvas.SetLeft(adorner, rcChild.Left);
         }
+		protected virtual void OnStartDrag(PointerEventArgs e)
+		{
+			if(e.KeyModifiers == KeyModifiers.Shift)
+			{
+				selectedItems.Clear();
+				int i = 0;
+				while(i < TabItems.Items.Count)
+				{
+					var container = ContainerFromIndex(i) as TabItem;
+					if (DockManager.GetAllowDrag(((DockableItem)container.Content).Header))
+					{
+						container.Classes.Add("grabbed");
+						selectedItems.Add((DockableItem)container.Content);
+					}
+					i++;
+				}
+			}
+			else
+				ContainerFromIndex(SelectedIndex).Classes.Add("grabbed");
+        }
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
         {
             base.OnApplyTemplate(e);
@@ -446,34 +472,43 @@ namespace Sharp.DockManager
             if (dockable.TabItems.Items.Count is 0)
             {
                 var parent = dockable.GetLogicalParent();
-                if (parent is Grid { Name: "dockable" } g)
-                {
-                    var i = g.Children.IndexOf(dockable);
-                    var replacement = g.Children[i is 0 ? 2 : 0];
-                    Helpers.CopyGridProperties(g, replacement);
-                    g.Children.Clear();
-                    if (g.GetLogicalParent<Grid>() is { Name: "dockable" } g2)
-                    {
-                        var ind = g2.Children.IndexOf(g);
-                        g2.Children[ind] = replacement;
-                    }
-                    else
-                    {
-                        g.ReplaceWith(replacement);
-                    }
-                }
-                else if (parent is Window win)
-                    win.Close();
-                else
-                    dockable.ReplaceWith(null);
+				if (parent is Grid { Name: "dockable" } g)
+				{
+					var i = g.Children.IndexOf(dockable);
+					var replacement = g.Children[i is 0 ? 2 : 0];
+					Helpers.CopyGridProperties(g, replacement);
+					g.Children.Clear();
+					if (g.GetLogicalParent<Grid>() is { Name: "dockable" } g2)
+					{
+						var ind = g2.Children.IndexOf(g);
+						g2.Children[ind] = replacement;
+					}
+					else
+					{
+						g.ReplaceWith(replacement);
+					}
+				}
+				else if (parent is Window win)
+				{
+                    dockable.CloseWindowRequested(win);
+				}
+				else
+					dockable.ReplaceWith(null);
             }
         }
-		private static DockableControl PrepareNewDockableControl()
+		public virtual void CloseWindowRequested(Window win)
 		{
-			sourceDockable.TabItems.Items.Remove(selectedItem);
-            var tab = sourceDockable.CreateDockable();
+			win.Close();
+		}
+		private static DockableControl PrepareNewDockableControl()
+		{	
+			var tab = sourceDockable.CreateDockable();
 			tab.Theme = sourceDockable.Theme;
-			tab.TabItems.Items.Add(selectedItem);
+			foreach (var removable in selectedItems)
+			{
+				sourceDockable.TabItems.Items.Remove(removable);
+				tab.TabItems.Items.Add(removable);
+			}
 			return tab;
 		}
 		private static void DropTab(PointerReleasedEventArgs e)
@@ -492,21 +527,28 @@ namespace Sharp.DockManager
 			else if(lastTrigger.area is not Region.None)
 			{
 				var targetDockable = lastTrigger.control.FindAncestorOfType<DockableControl>();
-				if (lastTrigger.area is Region.Center)
+				if (targetDockable == sourceDockable && sourceDockable.TabItems.Items.Count == selectedItems.Count)
+					return; //Trying to swap with itself, do nothing. When we are going to swap same amount of tabs as sourceDockable, the area on which tab is dropped does not matter
+                if (lastTrigger.area is Region.Center)
 				{
+					var selected = sourceDockable.SelectedItem;
 					if (targetDockable == sourceDockable)
 					{   
 						return; //Trying to swap with itself, do nothing
 					}
 					else
 					{
-						sourceDockable.TabItems.Items.Remove(selectedItem);
-                        targetDockable.TabItems.Items.Add(selectedItem);
+                        foreach (var removable in selectedItems)
+                        {
+                            sourceDockable.TabItems.Items.Remove(removable);
+                            targetDockable.TabItems.Items.Add(removable);
+                        }
 					}
-					targetDockable.SelectedItem = selectedItem;
+					targetDockable.SelectedItem = selected;
 				}
 				else if(lastTrigger.area is Region.Header)
 				{
+					var selected = sourceDockable.SelectedItem;
                     if (targetDockable == sourceDockable)
                     {   //Trying to swap tabs within same DockableControl
                         var swapTo = targetDockable.IndexFromContainer(lastTrigger.control);
@@ -516,11 +558,16 @@ namespace Sharp.DockManager
                     }
                     else
                     {
-                        sourceDockable.TabItems.Items.Remove(selectedItem);
-                        var insert = targetDockable.IndexFromContainer(lastTrigger.control);
-                        targetDockable.TabItems.Items.Insert(insert, selectedItem);
+						var insert = targetDockable.IndexFromContainer(lastTrigger.control);
+						var insertOffset = 0;
+                        foreach (var removable in selectedItems)
+                        {
+                            sourceDockable.TabItems.Items.Remove(removable);
+                            targetDockable.TabItems.Items.Insert(insert+insertOffset,removable);
+							insertOffset++;
+                        }
                     }
-                    targetDockable.SelectedItem = selectedItem;
+                    targetDockable.SelectedItem = selected;
                 }
 				else
 				{

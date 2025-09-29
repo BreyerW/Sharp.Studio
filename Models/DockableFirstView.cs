@@ -1,15 +1,14 @@
-using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Sharp.DockManager.ViewModels;
 using Sharp.Studio.Views;
 
 namespace Sharp.Studio.Models
 {
-	public class DockableAssets: DockableItem
+	public class DockableFirstView: DockableItem
 	{
-		public DockableAssets()
+		public DockableFirstView()
 		{
-			Header = new CloseableHeader() { Text="Assets", OnClickClose = CloseHeader, OnTogglePin = UnOrPinHeader };
+			Header = new CloseableHeader() { Text="First View", OnClickClose = CloseHeader, OnTogglePin = UnOrPinHeader };
 			Content = new FirstView();
 		}
 		private void CloseHeader(object sender)

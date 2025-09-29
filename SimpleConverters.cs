@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using Sharp.DockManager;
@@ -60,6 +63,7 @@ namespace Sharp.Studio
             bezier1.Point2 = new Point(x9 - rb, h);
             bezier1.Point3 = new Point(x9, h);
             ps.Add(bezier1);
+            
             // "(x0, 0)" is start point.
             PathFigure figure = new PathFigure();
             figure.StartPoint = new Point(x0, h);
@@ -69,6 +73,25 @@ namespace Sharp.Studio
             geometry.Figures.Add(figure);
 
             return geometry;
+        });
+        public static FuncValueConverter<Rect, Geometry> ContentToTrapezoidShapeConverter { get; } =
+        new FuncValueConverter<Rect, Geometry>(value =>
+        {
+
+            double h = value.Height;
+            double w = value.Width; 
+            var width = w;
+
+            var _polygonPoints = new List<Point>(4);
+
+            _polygonPoints.Add(new Point(0, h));
+            _polygonPoints.Add(new Point(20, 0));
+            _polygonPoints.Add(new Point(width - 20, 0));
+            _polygonPoints.Add(new Point(width, h));
+
+            var polygon = new Polygon();
+            polygon.Points = _polygonPoints;
+            return polygon.DefiningGeometry;
         });
         public static FuncMultiValueConverter<object, (DockableControl dockable, object parameter)> ParametersToTupleConverter { get; } =
         new FuncMultiValueConverter<object, (DockableControl dockable, object parameter)>(value =>

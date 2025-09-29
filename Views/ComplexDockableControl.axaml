@@ -50,13 +50,14 @@
 		 <Style Selector="^:pointerover /template/ Path, ^:pressed /template/ Path">
 			  <Setter x:SetterTargetType="Path" Property="Fill" Value="Black" /><!--{DynamicResource ButtonBackgroundPressed}-->
 		  </Style>
+		<Style Selector="^.grabbed /template/ Path">
+			<Setter Property="StrokeThickness" Value="2"/>
+		</Style>
 		  <Setter Property="Template">
 			  
 			  <ControlTemplate>
 					  <Panel>
-						  <!--also change to sharp trapezoid for sample purposes-->
-						  <!--use strokethickness=1? -->
-						  <Path x:Name="filler" StrokeThickness="0" Stroke="{StaticResource BorderBrush}" Data="{Binding Path=Bounds, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static s:SimpleConverters.ContentToTabShapeConverter}}"
+						  <Path x:Name="filler" StrokeThickness="0" Stroke="{StaticResource BorderBrush}" Data="{Binding Path=Bounds, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static s:SimpleConverters.ContentToTrapezoidShapeConverter}}"
   />
 						  <Panel Margin="25 0 25 0">
 							  <ContentPresenter

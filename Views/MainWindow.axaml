@@ -18,12 +18,9 @@
 
 	<v:ComplexDockable PreviewBrush="rgba(144,238,144,0.33)" Theme="{StaticResource CustomComplexDockable}" >
 		<v:ComplexDockable.ItemsSource>
-			<m:DockableAssets/>
-			<m:DockableAssets/>
-			<m:DockableAssets/>
-			<m:DockableAssets/>
-			<m:DockableAssets/>
-			<m:DockableAssets/>
+			<m:DockableFirstView/>
+			<m:DockableSecondView/>
+			<m:DockableFirstView/>
 		</v:ComplexDockable.ItemsSource>
 
 	</v:ComplexDockable>

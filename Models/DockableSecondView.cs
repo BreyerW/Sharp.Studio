@@ -4,11 +4,11 @@ using Sharp.Studio.Views;
 
 namespace Sharp.Studio.Models
 {
-	public class DockableScene: DockableItem
+	public class DockableSecondView: DockableItem
 	{
-		public DockableScene()
+		public DockableSecondView()
 		{
-			Header = new CloseableHeader() { Text = "Scene"};
+			Header = new CloseableHeader() { Text = "Second view"};
 			Content = new SecondView();
 		}
 	}

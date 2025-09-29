@@ -38,9 +38,6 @@ public partial class CloseableHeader : UserControl
     }
     public Action<object> OnClickClose;
     public Action<object> OnTogglePin;
-    private TabItem tab;
-    private Path tabShape;
-    private IBrush oldBrush;
 
     public CloseableHeader()
     {
@@ -57,8 +54,6 @@ public partial class CloseableHeader : UserControl
     {
         base.OnPointerEntered(e);
     }
-
-    //maybe try bubble/tunnel events?
     private void ToggleButton_Checked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         DockManager.DockManager.SetAllowDrag(this, false);

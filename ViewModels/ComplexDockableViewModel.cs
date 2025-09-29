@@ -3,18 +3,22 @@ using System.Collections.Generic;
 using System.Windows.Input;
 using Sharp.DockManager.ViewModels;
 using Sharp.Studio.Models;
+using Sharp.Studio.Views;
 
 namespace Sharp.Studio.ViewModels
 {
     public class ComplexDockableViewModel : ViewModelBase
     {
         public ComplexDockableViewModel() {
+            var firstViewFactory = () => new DockableFirstView();
+            var secondViewFactory = () => new DockableSecondView();
+
             CreateTabMenuItems = new List<TabFactoryViewModel>()
             {
                 new TabFactoryViewModel()
                 {
-                    Header = "Assets View",
-                    CommandParameter = ()=> new DockableAssets()
+                    Header = ((CloseableHeader)firstViewFactory().Header).Text,
+                    CommandParameter = firstViewFactory
                 },
                 new TabFactoryViewModel()
                 {
@@ -22,8 +26,8 @@ namespace Sharp.Studio.ViewModels
                 },
                 new TabFactoryViewModel()
                 {
-                    Header = "Scene View",
-                    CommandParameter = ()=> new DockableScene()
+                    Header = ((CloseableHeader)secondViewFactory().Header).Text,
+                    CommandParameter = secondViewFactory
                 }
             };
         }
