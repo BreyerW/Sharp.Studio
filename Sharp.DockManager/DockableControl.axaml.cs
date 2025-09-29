@@ -31,6 +31,7 @@ namespace Sharp.DockManager
 	}
     public abstract partial  class DockableControl : TabControl
 	{
+		private static Dictionary<Window,List<DockableControl>> windowDockableMapping = new();
 		private static bool isDragging = false;
 		
 		private readonly static Window draggedItem = new Window() {
@@ -218,6 +219,21 @@ namespace Sharp.DockManager
                 }
             }
         }
+        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            base.OnAttachedToVisualTree(e);
+			ref var dockables = ref CollectionsMarshal.GetValueRefOrAddDefault(windowDockableMapping, (Window)VisualRoot, out var exists);
+			if (!exists)
+				dockables = new List<DockableControl>();
+			dockables.Add(this);
+        }
+        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            base.OnDetachedFromVisualTree(e);
+            ref var dockables = ref CollectionsMarshal.GetValueRefOrAddDefault(windowDockableMapping, (Window)e.Root, out var exists);
+            if (exists)
+				dockables.Remove(this);
+        }
         protected virtual void DockableControl_SelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
             RecalculateZIndex();
@@ -267,6 +283,7 @@ namespace Sharp.DockManager
 			{
 				sourceDockable.RecalculateZIndex();
 			}
+
 			sourceDockable = null;
 			canvas.IsVisible = false;
 			selectedItems.Clear();
@@ -274,6 +291,7 @@ namespace Sharp.DockManager
 			screenMousePosOffset = default;
 			draggedItem.IsVisible = false;
 			isDragging = false;
+
 		}
 		private static void PointerMoved(PointerEventArgs e)
 		{
@@ -471,7 +489,8 @@ namespace Sharp.DockManager
             var dockable = this;
             if (dockable.TabItems.Items.Count is 0)
             {
-                var parent = dockable.GetLogicalParent();
+				dockable.ReplaceWith(null);
+                /*var parent = dockable.GetLogicalParent();
 				if (parent is Grid { Name: "dockable" } g)
 				{
 					var i = g.Children.IndexOf(dockable);
@@ -493,7 +512,7 @@ namespace Sharp.DockManager
                     dockable.CloseWindowRequested(win);
 				}
 				else
-					dockable.ReplaceWith(null);
+					dockable.ReplaceWith(null);*/
             }
         }
 		public virtual void CloseWindowRequested(Window win)

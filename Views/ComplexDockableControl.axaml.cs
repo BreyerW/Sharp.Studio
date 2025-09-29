@@ -64,7 +64,7 @@ public sealed partial class ComplexDockable : DockableControl
     }
     public override void CloseWindowRequested(Window win)
     {
-        //if (win != mainWindow)
-          //  win.Close();
+        if (win != mainWindow)
+            win.Close();
     }
 }

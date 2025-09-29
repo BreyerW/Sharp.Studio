@@ -12,7 +12,6 @@ namespace Sharp.DockManager
 			Grid.SetColumnSpan(copyTo, Grid.GetColumnSpan(source));
 			Grid.SetRow(copyTo, Grid.GetRow(source));
 			Grid.SetRowSpan(copyTo, Grid.GetRowSpan(source));
-			copyTo.Name = source.Name;
 		}
         public static void SetAsColumn(Control c, int column)
         {
@@ -39,7 +38,7 @@ namespace Sharp.DockManager
 				{
                     var i = p.Children.IndexOf(toBeReplaced);
                     var replace = p.Children[i is 0 ? 2 : 0];
-                    Helpers.CopyGridProperties(g, replacement);
+                    Helpers.CopyGridProperties(p, replace);
                     p.Children.Clear();
                     if (p.GetLogicalParent<Grid>() is { Name: "dockable" } g2)
                     {
