@@ -16,7 +16,7 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-	<v:ComplexDockable PreviewBrush="rgba(144,238,144,0.33)" Theme="{StaticResource CustomComplexDockable}" >
+	<v:ComplexDockable dc:DockManager.AllowLastClose="False" PreviewBrush="rgba(144,238,144,0.33)" Theme="{StaticResource CustomComplexDockable}" >
 		<v:ComplexDockable.ItemsSource>
 			<m:DockableFirstView/>
 			<m:DockableSecondView/>

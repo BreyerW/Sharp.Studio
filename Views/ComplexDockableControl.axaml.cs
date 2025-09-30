@@ -58,9 +58,12 @@ public sealed partial class ComplexDockable : DockableControl
         var factory = (Func<DockableItem>)parameter;
         TabItems.Items.Add(factory());
     }
-    public override DockableControl CreateDockable()
+    public override DockableControl CreateDockable(bool createdIntoNewWindow)
     {
-        return new ComplexDockable();
+        var dockable = new ComplexDockable();
+        if (!createdIntoNewWindow)
+            DockManager.DockManager.SetAllowLastClose(dockable, DockManager.DockManager.GetAllowLastClose(this));
+        return dockable;
     }
     public override void CloseWindowRequested(Window win)
     {
