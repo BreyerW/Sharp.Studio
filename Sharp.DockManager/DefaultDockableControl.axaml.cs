@@ -26,7 +26,7 @@ public sealed partial class DefaultDockableControl : DockableControl
         if (win != mainWindow)
             win.Close();
     }
-    public override DockableControl CreateDockable()
+    public override DockableControl CreateDockable(bool createdIntoNewWindow)
     {
         return new DefaultDockableControl();
     }

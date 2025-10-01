@@ -11,12 +11,14 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Sharp.Studio.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Sharp.Studio">
+        Title="Sharp.Studio"
+		dc:DockManager.AllowLastClose="False"
+		>
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-	<v:ComplexDockable dc:DockManager.AllowLastClose="False" PreviewBrush="rgba(144,238,144,0.33)" Theme="{StaticResource CustomComplexDockable}" >
+	<v:ComplexDockable dc:DockManager.AllowDropArea="Left, Right" PreviewBrush="rgba(144,238,144,0.33)" Theme="{StaticResource CustomComplexDockable}" >
 		<v:ComplexDockable.ItemsSource>
 			<m:DockableFirstView/>
 			<m:DockableSecondView/>

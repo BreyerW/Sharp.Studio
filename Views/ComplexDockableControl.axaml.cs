@@ -60,10 +60,7 @@ public sealed partial class ComplexDockable : DockableControl
     }
     public override DockableControl CreateDockable(bool createdIntoNewWindow)
     {
-        var dockable = new ComplexDockable();
-        if (!createdIntoNewWindow)
-            DockManager.DockManager.SetAllowLastClose(dockable, DockManager.DockManager.GetAllowLastClose(this));
-        return dockable;
+        return new ComplexDockable();
     }
     public override void CloseWindowRequested(Window win)
     {

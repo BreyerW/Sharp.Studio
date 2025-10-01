@@ -18,7 +18,7 @@ using HarfBuzzSharp;
 
 namespace Sharp.DockManager
 {
-	//[Flags]
+	[Flags]
 	public enum Region
 	{
 		None = 0,
@@ -28,7 +28,7 @@ namespace Sharp.DockManager
         Bottom = 1 << 3,
         Center = 1 << 4,
         Header = 1 << 5,
-		//All = Left | Right | Top | Bottom | Center | Header
+		All = Left | Right | Top | Bottom | Center | Header
     }
     public abstract partial  class DockableControl : TabControl
 	{
@@ -278,7 +278,7 @@ namespace Sharp.DockManager
 
         private static void DropFinished()
 		{
-			sourceDockable.OnStopDrag();
+			sourceDockable?.OnStopDrag();
 			foreach (var (win, counter) in dockableCounterInWindows)
 			{
 				if (counter == 0)
@@ -344,17 +344,17 @@ namespace Sharp.DockManager
 					
 					if (targetDockable is not null)
 					{
+						var dropPermissions = DockManager.GetAllowDropArea(targetDockable);
 						(bool Top, bool Bottom, bool Left, bool Right, bool Center, bool Header) allow =
 						(
-							DockManager.GetAllowTopDrop(targetDockable),
-							DockManager.GetAllowBottomDrop(targetDockable),
-							DockManager.GetAllowLeftDrop(targetDockable),
-							DockManager.GetAllowRightDrop(targetDockable),
-							DockManager.GetAllowCenterDrop(targetDockable),
-							DockManager.GetAllowHeaderDrop(targetDockable)
-						);
-						var noRegionIsAllowed = !allow.Top && !allow.Bottom && !allow.Left && !allow.Right && !allow.Center && !allow.Header;
-						if (noRegionIsAllowed is true)
+                            dropPermissions.HasFlag(Region.Top),
+                            dropPermissions.HasFlag(Region.Bottom),
+                            dropPermissions.HasFlag(Region.Left),
+							dropPermissions.HasFlag(Region.Right),
+                            dropPermissions.HasFlag(Region.Center),
+                            dropPermissions.HasFlag(Region.Header)
+                        );
+						if (dropPermissions == Region.None)
 						{
 							currentTrigger = (null, Region.None);
 							break;
@@ -387,7 +387,7 @@ namespace Sharp.DockManager
 							var posInBody = e.GetPosition(targetDockable.body);
 							if (posInBody is { X: >= 0, Y: >= 0 })
 							{
-								if (sourceDockable == targetDockable && allow.Center && sourceDockable.Items.Count is 1)
+								if (allow.Center && sourceDockable == targetDockable && sourceDockable.Items.Count is 1)
 									currentTrigger = (targetDockable.body, Region.Center);
 								else if (allow.Left && posInBody.X < targetDockable.body.Bounds.Width * 0.25)
 									currentTrigger = (targetDockable.body, Region.Left);
@@ -504,32 +504,12 @@ namespace Sharp.DockManager
 		private void DeleteOldDockableIfEmpty()
 		{
             var dockable = this;
-            if (dockable.TabItems.Items.Count is 0)
+			var root = (Window)this.VisualRoot;
+			if (root is null) return;
+			dockableCounterInWindows.TryGetValue(root, out var counter);
+            if (dockable.TabItems.Items.Count is 0 && DockManager.GetAllowClose(dockable) && (counter > 1 || DockManager.GetAllowLastClose(root)))
             {
 				dockable.ReplaceWith(null);
-                /*var parent = dockable.GetLogicalParent();
-				if (parent is Grid { Name: "dockable" } g)
-				{
-					var i = g.Children.IndexOf(dockable);
-					var replacement = g.Children[i is 0 ? 2 : 0];
-					Helpers.CopyGridProperties(g, replacement);
-					g.Children.Clear();
-					if (g.GetLogicalParent<Grid>() is { Name: "dockable" } g2)
-					{
-						var ind = g2.Children.IndexOf(g);
-						g2.Children[ind] = replacement;
-					}
-					else
-					{
-						g.ReplaceWith(replacement);
-					}
-				}
-				else if (parent is Window win)
-				{
-                    dockable.CloseWindowRequested(win);
-				}
-				else
-					dockable.ReplaceWith(null);*/
             }
         }
 		public virtual void CloseWindowRequested(Window win)

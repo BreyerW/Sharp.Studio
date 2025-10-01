@@ -17,139 +17,27 @@ namespace Sharp.DockManager
 	/// Defines the IsDropArea attached property.
 	/// </summary>
 
-		public static readonly AttachedProperty<bool> AllowHeaderDropProperty =
-            AvaloniaProperty.RegisterAttached<DockManager, DockableControl, bool>("AllowHeaderDrop", true, true, BindingMode.TwoWay);
-
-		public static readonly AttachedProperty<bool> AllowCenterDropProperty =
-			AvaloniaProperty.RegisterAttached<DockManager, DockableControl, bool>("AllowCenterDrop", true, true, BindingMode.TwoWay);
-		public static readonly AttachedProperty<bool> AllowLeftDropProperty =
-			AvaloniaProperty.RegisterAttached<DockManager, DockableControl, bool>("AllowLeftDrop", true, true, BindingMode.TwoWay);
-		public static readonly AttachedProperty<bool> AllowRightDropProperty =
-			AvaloniaProperty.RegisterAttached<DockManager, DockableControl, bool>("AllowRightDrop", true, true, BindingMode.TwoWay);
-		public static readonly AttachedProperty<bool> AllowTopDropProperty =
-			AvaloniaProperty.RegisterAttached<DockManager, DockableControl, bool>("AllowTopDrop", true, true, BindingMode.TwoWay);
-		public static readonly AttachedProperty<bool> AllowBottomDropProperty =
-			AvaloniaProperty.RegisterAttached<DockManager, DockableControl, bool>("AllowBottomDrop", true, true, BindingMode.TwoWay);
         public static readonly AttachedProperty<bool> AllowLastCloseProperty =
-            AvaloniaProperty.RegisterAttached<DockManager, DockableControl, bool>("AllowLastClose", true, true, BindingMode.TwoWay);
+            AvaloniaProperty.RegisterAttached<DockManager, Window, bool>("AllowLastClose", true, true, BindingMode.TwoWay);
+        public static readonly AttachedProperty<bool> AllowCloseProperty =
+            AvaloniaProperty.RegisterAttached<DockManager, DockableControl, bool>("AllowClose", true, true, BindingMode.TwoWay);
         public static readonly AttachedProperty<bool> AllowDropProperty =
 			AvaloniaProperty.RegisterAttached<DockManager, Control, bool>("AllowDrop", true, true, BindingMode.TwoWay);
 		public static readonly AttachedProperty<bool> AllowDragProperty =
 			AvaloniaProperty.RegisterAttached<DockManager, Control, bool>("AllowDrag", true, true, BindingMode.TwoWay);
+        public static readonly AttachedProperty<Region> AllowDropAreaProperty =
+    AvaloniaProperty.RegisterAttached<DockManager, DockableControl, Region>("AllowAreaDrop", Region.All, true, BindingMode.TwoWay);
 
-		/// <summary>
-		/// Gets the value of the IsDropArea attached property on the specified control.
-		/// </summary>
-		/// <param name="control">The control.</param>
-		/// <returns>The IsDropArea attached property.</returns>
-		public static bool GetAllowHeaderDrop(Control control)
+        public static Region GetAllowDropArea(Control control)
         {
-            return control.GetValue(AllowHeaderDropProperty);
+            return control.GetValue(AllowDropAreaProperty);
         }
 
-        /// <summary>
-        /// Sets the value of the IsDropArea attached property on the specified control.
-        /// </summary>
-        /// <param name="control">The control.</param>
-        /// <param name="value">The value of the IsDropArea property.</param>
-        public static void SetAllowHeaderDrop(Control control, bool value)
+        public static void SetAllowDropArea(Control control, Region value)
         {
-            control.SetValue(AllowHeaderDropProperty, value);
+            control.SetValue(AllowDropAreaProperty, value);
         }
-		/// <summary>
-		/// Gets the value of the IsDropArea attached property on the specified control.
-		/// </summary>
-		/// <param name="control">The control.</param>
-		/// <returns>The IsDropArea attached property.</returns>
-		public static bool GetAllowCenterDrop(Control control)
-		{
-			return control.GetValue(AllowCenterDropProperty);
-		}
-
-		/// <summary>
-		/// Sets the value of the IsDropArea attached property on the specified control.
-		/// </summary>
-		/// <param name="control">The control.</param>
-		/// <param name="value">The value of the IsDropArea property.</param>
-		public static void SetAllowCenterDrop(Control control, bool value)
-		{
-			control.SetValue(AllowCenterDropProperty, value);
-		}
-		/// <summary>
-		/// Gets the value of the IsDropArea attached property on the specified control.
-		/// </summary>
-		/// <param name="control">The control.</param>
-		/// <returns>The IsDropArea attached property.</returns>
-		public static bool GetAllowLeftDrop(Control control)
-		{
-			return control.GetValue(AllowLeftDropProperty);
-		}
-
-		/// <summary>
-		/// Sets the value of the IsDropArea attached property on the specified control.
-		/// </summary>
-		/// <param name="control">The control.</param>
-		/// <param name="value">The value of the IsDropArea property.</param>
-		public static void SetAllowLeftDrop(Control control, bool value)
-		{
-			control.SetValue(AllowHeaderDropProperty, value);
-		}
-		/// <summary>
-		/// Gets the value of the IsDropArea attached property on the specified control.
-		/// </summary>
-		/// <param name="control">The control.</param>
-		/// <returns>The IsDropArea attached property.</returns>
-		public static bool GetAllowRightDrop(Control control)
-		{
-			return control.GetValue(AllowRightDropProperty);
-		}
-
-		/// <summary>
-		/// Sets the value of the IsDropArea attached property on the specified control.
-		/// </summary>
-		/// <param name="control">The control.</param>
-		/// <param name="value">The value of the IsDropArea property.</param>
-		public static void SetAllowRightDrop(Control control, bool value)
-		{
-			control.SetValue(AllowRightDropProperty, value);
-		}
-		/// <summary>
-		/// Gets the value of the IsDropArea attached property on the specified control.
-		/// </summary>
-		/// <param name="control">The control.</param>
-		/// <returns>The IsDropArea attached property.</returns>
-		public static bool GetAllowTopDrop(Control control)
-		{
-			return control.GetValue(AllowTopDropProperty);
-		}
-
-		/// <summary>
-		/// Sets the value of the IsDropArea attached property on the specified control.
-		/// </summary>
-		/// <param name="control">The control.</param>
-		/// <param name="value">The value of the IsDropArea property.</param>
-		public static void SetAllowTopDrop(Control control, bool value)
-		{
-			control.SetValue(AllowTopDropProperty, value);
-		}/// <summary>
-		 /// Gets the value of the IsDropArea attached property on the specified control.
-		 /// </summary>
-		 /// <param name="control">The control.</param>
-		 /// <returns>The IsDropArea attached property.</returns>
-		public static bool GetAllowBottomDrop(Control control)
-		{
-			return control.GetValue(AllowBottomDropProperty);
-		}
-
-		/// <summary>
-		/// Sets the value of the IsDropArea attached property on the specified control.
-		/// </summary>
-		/// <param name="control">The control.</param>
-		/// <param name="value">The value of the IsDropArea property.</param>
-		public static void SetAllowBottomDrop(Control control, bool value)
-		{
-			control.SetValue(AllowBottomDropProperty, value);
-		}
+       
         /// <summary>
         /// Gets the value of the IsDropArea attached property on the specified control.
         /// </summary>
@@ -157,7 +45,7 @@ namespace Sharp.DockManager
         /// <returns>The IsDropArea attached property.</returns>
         public static bool GetAllowLastClose(Control control)
         {
-            return control.GetValue(AllowBottomDropProperty);
+            return control.GetValue(AllowLastCloseProperty);
         }
         /// <summary>
         /// Sets the value of the IsDropArea attached property on the specified control.
@@ -167,6 +55,24 @@ namespace Sharp.DockManager
         public static void SetAllowLastClose(Control control, bool value)
         {
             control.SetValue(AllowLastCloseProperty, value);
+        }
+        /// <summary>
+        /// Gets the value of the IsDropArea attached property on the specified control.
+        /// </summary>
+        /// <param name="control">The control.</param>
+        /// <returns>The IsDropArea attached property.</returns>
+        public static bool GetAllowClose(Control control)
+        {
+            return control.GetValue(AllowCloseProperty);
+        }
+        /// <summary>
+        /// Sets the value of the IsDropArea attached property on the specified control.
+        /// </summary>
+        /// <param name="control">The control.</param>
+        /// <param name="value">The value of the IsDropArea property.</param>
+        public static void SetAllowClose(Control control, bool value)
+        {
+            control.SetValue(AllowCloseProperty, value);
         }
         /// <summary>
         /// Gets the value of the IsDropArea attached property on the specified control.
