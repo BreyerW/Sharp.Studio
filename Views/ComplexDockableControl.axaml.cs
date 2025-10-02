@@ -58,8 +58,9 @@ public sealed partial class ComplexDockable : DockableControl
         var factory = (Func<DockableItem>)parameter;
         TabItems.Items.Add(factory());
     }
-    public override DockableControl CreateDockable(bool createdIntoNewWindow)
+    protected override DockableControl CreateDockable(bool createdIntoNewWindow)
     {
+        //TODO: add copy of previewBrush
         return new ComplexDockable();
     }
     public override void CloseWindowRequested(Window win)

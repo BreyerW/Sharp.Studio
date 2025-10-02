@@ -72,7 +72,7 @@ namespace Sharp.DockManager
 				d.Child = replacement;
 			}
 			else
-				DockableControl.ReplaceControlRequested?.Invoke(toBeReplaced,replacement);
+				DockableControl.sourceDockable.ReplaceControlRequested(toBeReplaced,replacement);
 		}
 	}
 }

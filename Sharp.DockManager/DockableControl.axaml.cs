@@ -15,6 +15,9 @@ using System.Runtime.InteropServices;
 using Avalonia.Platform;
 using System.Collections.Generic;
 using HarfBuzzSharp;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
+using Avalonia.Data.Core.Plugins;
 
 namespace Sharp.DockManager
 {
@@ -46,26 +49,25 @@ namespace Sharp.DockManager
 		};
 
 		private static (Control control, Region area) lastTrigger = default;
-		protected static DockableControl sourceDockable = null;
+		protected internal static DockableControl sourceDockable = null;
 		private static PixelPoint screenMousePosOffset;
 
 		protected static List<DockableItem> selectedItemsFrorDragging = new ();
 		private static Window[] sortedWindows;
 		protected static Border adornedElement = new ();
-		internal static Canvas canvas = new ();
+		protected static Canvas canvas = new ();
 		protected ScrollViewer scroller;
 		private ItemsPresenter header;
 		private ContentPresenter body;
 
         public static readonly StyledProperty<IBrush> PreviewBrushProperty =
                     AvaloniaProperty.Register<DockableControl, IBrush>(nameof(PreviewBrush));
-
+        public static readonly StyledProperty<IBrush> InvalidPreviewBrushProperty =
+                    AvaloniaProperty.Register<DockableControl, IBrush>(nameof(InvalidPreviewBrush));
         public IBrush PreviewBrush
         {
             set
             {
-                draggedItem.Background = value;
-                adornedElement.Background = value;
                 SetValue(PreviewBrushProperty, value);
             }
             get
@@ -73,13 +75,17 @@ namespace Sharp.DockManager
                 return GetValue(PreviewBrushProperty);
             }
         }
-
-		public static Action<Control, Control> ReplaceControlRequested
-		{
-			get;
-			set;
-		}
-		
+        public IBrush InvalidPreviewBrush
+        {
+            set
+            {
+                SetValue(InvalidPreviewBrushProperty, value);
+            }
+            get
+            {
+                return GetValue(InvalidPreviewBrushProperty);
+            }
+        }
         public DockableTabViewModel TabItems { get; set; } = new();
 
 
@@ -275,7 +281,9 @@ namespace Sharp.DockManager
 			selectedItemsFrorDragging.Clear();
 			selectedItemsFrorDragging.Add(s.Content as DockableItem);
 		}
-
+        protected internal virtual void ReplaceControlRequested(Control toBeReplaced, Control replacement)
+        {
+        }
         private static void DropFinished()
 		{
 			sourceDockable?.OnStopDrag();
@@ -331,6 +339,7 @@ namespace Sharp.DockManager
 			(Control control, Region area) currentTrigger = default;
 
 			Control? hit = null;
+			bool isValid = true;
 			foreach (var window in sortedWindows)
 			{
 				var pos = window.PointToClient(screenPos);
@@ -354,13 +363,8 @@ namespace Sharp.DockManager
                             dropPermissions.HasFlag(Region.Center),
                             dropPermissions.HasFlag(Region.Header)
                         );
-						if (dropPermissions == Region.None)
-						{
-							currentTrigger = (null, Region.None);
-							break;
-						}
 						var dPos = e.GetPosition(targetDockable);
-						if (allow.Header && targetDockable.scroller.Bounds.Contains(dPos))
+						if (targetDockable.scroller.Bounds.Contains(dPos))
 						{
 							Control tab = null;
 							var scrollerPos = e.GetPosition(targetDockable.header.Panel);
@@ -372,13 +376,14 @@ namespace Sharp.DockManager
 									break;
 								}
 							}
-							if (tab is not null && DockManager.GetAllowDrop(tab))
+                            if (tab is not null)
 							{
 								currentTrigger = (tab, Region.Header);
-							}
+                                isValid = allow.Header && DockManager.GetAllowDrop(tab);
+                            }
 							else
 							{
-								currentTrigger = (null, Region.None);
+								currentTrigger = (null, Region.Header);
 								break;
 							}
 						}
@@ -387,18 +392,36 @@ namespace Sharp.DockManager
 							var posInBody = e.GetPosition(targetDockable.body);
 							if (posInBody is { X: >= 0, Y: >= 0 })
 							{
-								if (allow.Center && sourceDockable == targetDockable && sourceDockable.Items.Count is 1)
+								if (sourceDockable == targetDockable && sourceDockable.Items.Count is 1)
+								{
 									currentTrigger = (targetDockable.body, Region.Center);
-								else if (allow.Left && posInBody.X < targetDockable.body.Bounds.Width * 0.25)
+									isValid = allow.Center;
+								}
+								else if (posInBody.X < targetDockable.body.Bounds.Width * 0.25)
+								{
 									currentTrigger = (targetDockable.body, Region.Left);
-								else if (allow.Right && posInBody.X > targetDockable.body.Bounds.Width * 0.75)
+                                    isValid = allow.Left;
+                                }
+								else if (posInBody.X > targetDockable.body.Bounds.Width * 0.75)
+								{
 									currentTrigger = (targetDockable.body, Region.Right);
-								else if (allow.Top && posInBody.Y < targetDockable.body.Bounds.Height * 0.25)
+                                    isValid = allow.Right;
+                                }
+								else if (posInBody.Y < targetDockable.body.Bounds.Height * 0.25)
+								{
 									currentTrigger = (targetDockable.body, Region.Top);
-								else if (allow.Bottom && posInBody.Y > targetDockable.body.Bounds.Height * 0.75)
+                                    isValid = allow.Top;
+                                }
+								else if (posInBody.Y > targetDockable.body.Bounds.Height * 0.75)
+								{
 									currentTrigger = (targetDockable.body, Region.Bottom);
-								else if (allow.Center)
+                                    isValid = allow.Bottom;
+                                }
+								else
+								{
 									currentTrigger = (targetDockable.body, Region.Center);
+                                    isValid = allow.Center;
+                                }
 							}
 							else
 							{
@@ -415,44 +438,74 @@ namespace Sharp.DockManager
 							canvasParent?.Children.Remove(canvas);
 							adornerLayer.Children.Add(canvas);
 							AdornerLayer.SetAdornedElement(canvas, adornerTarget);
-
-							sourceDockable.PreparePreviewOverlay(adornerTarget, adornedElement, currentTrigger.area);
+							sourceDockable.PreparePreviewOverlay(adornerTarget, adornedElement, currentTrigger.area, isValid);
 						}
 						break;
 					}
 				}
 			}
-			var cond = currentTrigger.control is null;
-			canvas.IsVisible = !cond;
-			draggedItem.IsVisible = cond;
+			if(currentTrigger is { control: null, area: Region.None })
+				sourceDockable.PreparePreviewOverlay(draggedItem, null, currentTrigger.area, isValid);
 			lastTrigger = currentTrigger;
+			if (!isValid)
+				lastTrigger.area = Region.None;
 		}
-		//Can use this to customize if overlay should follow margins/paddings of target
-		//or change color based on some condition like setting red color if target is not allowed 
-		//this is called only when preview is over another window but not when over "empty" space
-		protected virtual void PreparePreviewOverlay(Control adornerTarget, Control adorner, Region area)
+		/// <summary>
+		/// Can use this to customize if overlay should follow margins/paddings of target
+		/// or change color based on some condition like setting red color if target is not allowed.
+		/// If adorner is null, that means drag is either over invalid target or performed outside any app window (over "empty" space)
+		/// </summary>
+		/// <param name="adornerTarget"></param>
+		/// <param name="adorner"></param>
+		/// <param name="area"></param>
+		/// <exception cref="NotImplementedException"></exception>
+		protected virtual void PreparePreviewOverlay(Control adornerTarget, Control? adorner, Region area, bool isValidDrop)
 		{
-            var leftTop = new Point(0, 0);
-            var leftMid = new Point(0, adornerTarget.Bounds.Height / 2);
-            var rightMid = leftMid.WithX(adornerTarget.Bounds.Width);
-            var topMid = new Point(adornerTarget.Bounds.Width / 2, 0);
-            var bottomMid = topMid.WithY(adornerTarget.Bounds.Height);
-            var bottomRight = new Point(adornerTarget.Bounds.Width, adornerTarget.Bounds.Height);
+			if (isValidDrop) 
+			{
+                draggedItem.Background = PreviewBrush;
+                adornedElement.Background = PreviewBrush;
+            }
+			else
+			{
+                draggedItem.Background = InvalidPreviewBrush;
+                adornedElement.Background = InvalidPreviewBrush;
+            }
+			var cond = adorner is not null;
+			if (cond)
+			{
+				
+                var leftTop = new Point(0, 0);
+				var leftMid = new Point(0, adornerTarget.Bounds.Height / 2);
+				var rightMid = leftMid.WithX(adornerTarget.Bounds.Width);
+				var topMid = new Point(adornerTarget.Bounds.Width / 2, 0);
+				var bottomMid = topMid.WithY(adornerTarget.Bounds.Height);
+				var bottomRight = new Point(adornerTarget.Bounds.Width, adornerTarget.Bounds.Height);
 
-            var rcChild = area switch
-            {
-                Region.Left => new Rect(leftTop, bottomMid),
-                Region.Right => new Rect(topMid, bottomRight),
-                Region.Top => new Rect(leftTop, rightMid),
-                Region.Bottom => new Rect(leftMid, bottomRight),
-                Region.Center or Region.Header => new Rect(leftTop, bottomRight),
-            };
-            adorner.Width = rcChild.Width;
-            adorner.Height = rcChild.Height;
-            Canvas.SetTop(adorner, rcChild.Top);
-            Canvas.SetLeft(adorner, rcChild.Left);
+				var rcChild = area switch
+				{
+					Region.Left => new Rect(leftTop, bottomMid),
+					Region.Right => new Rect(topMid, bottomRight),
+					Region.Top => new Rect(leftTop, rightMid),
+					Region.Bottom => new Rect(leftMid, bottomRight),
+					Region.Center or Region.Header or Region.All => new Rect(leftTop, bottomRight),
+					Region.None => new Rect(new Point(0, 0), new Point(0, 0)),
+					_ => throw new NotImplementedException(),
+				};
+				adorner.Width = rcChild.Width;
+				adorner.Height = rcChild.Height;
+				Canvas.SetTop(adorner, rcChild.Top);
+				Canvas.SetLeft(adorner, rcChild.Left);
+			}
+
+            draggedItem.IsVisible = !cond;
+            canvas.IsVisible = cond;
         }
-		protected virtual void OnStopDrag()
+        /// <summary>
+		/// Called at the end of Drag
+		/// Should be overriden together with <see cref="OnStartDrag(PointerEventArgs)"/> in most cases
+		/// </summary>
+        protected virtual void OnStopDrag()
 		{
             if (TabItems.Items.Count > 0)
             {
@@ -466,7 +519,12 @@ namespace Sharp.DockManager
                 }
             }
         }
-		protected virtual void OnStartDrag(PointerEventArgs e)
+        /// <summary>
+		/// Called at the start of Drag (after first move of mouse not after first click!)
+		/// Should be overriden together with <see cref="OnStopDrag"/> in most cases
+		/// </summary>
+		/// <param name="e"></param>
+        protected virtual void OnStartDrag(PointerEventArgs e)
 		{
 			if(e.KeyModifiers == KeyModifiers.Shift)
 			{
@@ -512,7 +570,11 @@ namespace Sharp.DockManager
 				dockable.ReplaceWith(null);
             }
         }
-		public virtual void CloseWindowRequested(Window win)
+        /// <summary>
+        /// Called whenever Dockable becomes empty and is last existing on Window and AllowLastClose plus AllowClose is true
+        /// </summary>
+        /// <param name="win"></param>
+        public virtual void CloseWindowRequested(Window win)
 		{
 			win.Close();
 		}
@@ -588,7 +650,12 @@ namespace Sharp.DockManager
 				}
 			}
 		}
-		public virtual Window CreateWindow(DockableControl dockable)
+        /// <summary>
+        /// Called whenever Dockable creates "real" window (as opposed to preview window) to house drag dropped Dockable (which is usually outside any existing app windows)
+        /// </summary>
+        /// <param name="dockable"></param>
+        /// <returns></returns>
+        protected virtual Window CreateWindow(DockableControl dockable)
 		{
             var dropWin = new Window();
 
@@ -599,6 +666,12 @@ namespace Sharp.DockManager
             dropWin.Content = dockable;
 			return dropWin;
         }
-		public abstract DockableControl CreateDockable(bool createdIntoNewWindow);
+
+		/// <summary>
+		/// Called whenever Dockable need to create new dockable after drag dropping TabItem. In most cases you should return self type, but this isn't hard requirement.
+		/// </summary>
+		/// <param name="createdIntoNewWindow"></param>
+		/// <returns></returns>
+		protected abstract DockableControl CreateDockable(bool createdIntoNewWindow);
     }
 }
