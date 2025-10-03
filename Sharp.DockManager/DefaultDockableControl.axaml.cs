@@ -28,6 +28,10 @@ public sealed partial class DefaultDockableControl : DockableControl
     }
     protected override DockableControl CreateDockable(bool createdIntoNewWindow)
     {
-        return new DefaultDockableControl();
+        var dockable = new DefaultDockableControl();
+        dockable.Theme = sourceDockable.Theme;
+        dockable.PreviewBrush = this.PreviewBrush;
+        dockable.InvalidPreviewBrush = this.InvalidPreviewBrush;
+        return dockable;
     }
 }

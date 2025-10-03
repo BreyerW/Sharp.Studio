@@ -4,6 +4,7 @@ using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using HarfBuzzSharp;
 using Sharp.DockManager;
 using Sharp.DockManager.ViewModels;
 using Sharp.Studio.Models;
@@ -60,8 +61,11 @@ public sealed partial class ComplexDockable : DockableControl
     }
     protected override DockableControl CreateDockable(bool createdIntoNewWindow)
     {
-        //TODO: add copy of previewBrush
-        return new ComplexDockable();
+        var dockable = new ComplexDockable();
+        dockable.Theme = sourceDockable.Theme;
+        dockable.PreviewBrush = this.PreviewBrush;
+        dockable.InvalidPreviewBrush = this.InvalidPreviewBrush;
+        return dockable;
     }
     public override void CloseWindowRequested(Window win)
     {

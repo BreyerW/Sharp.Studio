@@ -14,10 +14,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia.Platform;
 using System.Collections.Generic;
-using HarfBuzzSharp;
-using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics;
-using Avalonia.Data.Core.Plugins;
 
 namespace Sharp.DockManager
 {
@@ -35,17 +31,20 @@ namespace Sharp.DockManager
     }
     public abstract partial  class DockableControl : TabControl
 	{
-		private static Dictionary<Window,int> dockableCounterInWindows = new();
+		//TODO: add removal of closing windows
+		private static Dictionary<Window,HashSet<DockableControl>> dockableCounterInWindows = new();
 		private static bool isDragging = false;
-		
-		private readonly static Window draggedItem = new Window() {
+
+		private readonly static Window draggedItem = new Window()
+		{
 			ShowActivated = false,
 			Topmost = true,
 			SystemDecorations = SystemDecorations.None,
 			ExtendClientAreaTitleBarHeightHint = 0,
 			ExtendClientAreaToDecorationsHint = true,
 			ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome,
-			ShowInTaskbar = false
+			ShowInTaskbar = false,
+			IsHitTestVisible = false
 		};
 
 		private static (Control control, Region area) lastTrigger = default;
@@ -97,6 +96,12 @@ namespace Sharp.DockManager
 				Window.SortWindowsByZOrder(windows);
 				windows.AsSpan().Reverse();
 				sortedWindows = windows;
+				//prune closed windows
+				foreach(var (win, _ ) in dockableCounterInWindows)
+				{
+					if (!sortedWindows.Contains(win))
+						dockableCounterInWindows.Remove(win);
+				}
 			}
 		}
 		static DockableControl()
@@ -230,14 +235,16 @@ namespace Sharp.DockManager
         {
             base.OnAttachedToVisualTree(e);
 			ref var dockables = ref CollectionsMarshal.GetValueRefOrAddDefault(dockableCounterInWindows, (Window)VisualRoot, out var exists);
-			dockables++;
+			if (!exists)
+				dockables = new();
+			dockables.Add(this);
         }
         protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
         {
             base.OnDetachedFromVisualTree(e);
             ref var dockables = ref CollectionsMarshal.GetValueRefOrAddDefault(dockableCounterInWindows, (Window)e.Root, out var exists);
             if (exists)
-				dockables--;
+				dockables.Remove(this);
         }
         protected virtual void DockableControl_SelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
@@ -289,10 +296,10 @@ namespace Sharp.DockManager
 			sourceDockable?.OnStopDrag();
 			foreach (var (win, counter) in dockableCounterInWindows)
 			{
-				if (counter == 0)
+				if (counter.Count == 0)
 				{
 					dockableCounterInWindows.Remove(win);
-					sourceDockable.CloseWindowRequested(win);
+					sourceDockable?.CloseWindowRequested(win);
 				}
 			}
 			sourceDockable = null;
@@ -326,7 +333,6 @@ namespace Sharp.DockManager
                 isDragging = true;
 				var Width = sourceDockable.Bounds.Width;
 				var Height = sourceDockable.Bounds.Height;
-
 				draggedItem.Width = Width;
 				draggedItem.Height = Height;
 			}
@@ -338,111 +344,109 @@ namespace Sharp.DockManager
 			draggedItem.Position = screenPos - screenMousePosOffset;
 			(Control control, Region area) currentTrigger = default;
 
-			Control? hit = null;
+			DockableControl targetDockable = null;
 			bool isValid = true;
 			foreach (var window in sortedWindows)
 			{
 				var pos = window.PointToClient(screenPos);
-				if (pos is { X: 0, Y: 0 })
+				if (window == draggedItem || !window.Bounds.Contains(pos))
 					continue;
 
-				hit = window.GetVisualAt(pos, c => c is not Border) as Control;
-				if (hit is not null)
-				{
-					var targetDockable = hit.FindAncestorOfType<DockableControl>(true);
-					
-					if (targetDockable is not null)
+				if(dockableCounterInWindows.TryGetValue(window, out var dockables))
+					foreach (var dockable in dockables)
 					{
-						var dropPermissions = DockManager.GetAllowDropArea(targetDockable);
-						(bool Top, bool Bottom, bool Left, bool Right, bool Center, bool Header) allow =
-						(
-                            dropPermissions.HasFlag(Region.Top),
-                            dropPermissions.HasFlag(Region.Bottom),
-                            dropPermissions.HasFlag(Region.Left),
-							dropPermissions.HasFlag(Region.Right),
-                            dropPermissions.HasFlag(Region.Center),
-                            dropPermissions.HasFlag(Region.Header)
-                        );
-						var dPos = e.GetPosition(targetDockable);
-						if (targetDockable.scroller.Bounds.Contains(dPos))
+                        var locPos = e.GetPosition(dockable.GetVisualParent());
+                        if (dockable.Bounds.Contains(locPos))
 						{
-							Control tab = null;
-							var scrollerPos = e.GetPosition(targetDockable.header.Panel);
-							foreach (var t in targetDockable.header.Panel.Children)
+							targetDockable = dockable;
+							break;
+						}
+					}
+				if (targetDockable is not null)
+				{
+						
+					var dropPermissions = DockManager.GetAllowDropArea(targetDockable);
+					(bool Top, bool Bottom, bool Left, bool Right, bool Center, bool Header) allow =
+					(
+                        dropPermissions.HasFlag(Region.Top),
+                        dropPermissions.HasFlag(Region.Bottom),
+                        dropPermissions.HasFlag(Region.Left),
+						dropPermissions.HasFlag(Region.Right),
+                        dropPermissions.HasFlag(Region.Center),
+                        dropPermissions.HasFlag(Region.Header)
+                    );
+					var dPos = e.GetPosition(targetDockable);
+					if (targetDockable.scroller.Bounds.Contains(dPos))
+					{
+						Control tab = null;
+						var scrollerPos = e.GetPosition(targetDockable.header.Panel);
+						foreach (var t in targetDockable.header.Panel.Children)
+						{
+							if (t.Bounds.Contains(scrollerPos))
 							{
-								if (t.Bounds.Contains(scrollerPos))
-								{
-									tab = t;
-									break;
-								}
+								tab = t;
+								break;
 							}
-                            if (tab is not null)
+						}
+                        if (tab is not null)
+						{
+							currentTrigger = (tab, Region.Header);
+                            isValid = allow.Header && DockManager.GetAllowDrop(tab);
+                        }
+						else
+						{
+							currentTrigger = (null, Region.Header);
+						}
+					}
+					else
+					{
+						var posInBody = e.GetPosition(targetDockable.body);
+						if (posInBody is { X: >= 0, Y: >= 0 })
+						{
+							if (posInBody.X < targetDockable.body.Bounds.Width * 0.25)
 							{
-								currentTrigger = (tab, Region.Header);
-                                isValid = allow.Header && DockManager.GetAllowDrop(tab);
+								currentTrigger = (targetDockable.body, Region.Left);
+                                isValid = allow.Left;
+                            }
+							else if (posInBody.X > targetDockable.body.Bounds.Width * 0.75)
+							{
+								currentTrigger = (targetDockable.body, Region.Right);
+                                isValid = allow.Right;
+                            }
+							else if (posInBody.Y < targetDockable.body.Bounds.Height * 0.25)
+							{
+								currentTrigger = (targetDockable.body, Region.Top);
+                                isValid = allow.Top;
+                            }
+							else if (posInBody.Y > targetDockable.body.Bounds.Height * 0.75)
+							{
+								currentTrigger = (targetDockable.body, Region.Bottom);
+                                isValid = allow.Bottom;
                             }
 							else
 							{
-								currentTrigger = (null, Region.Header);
-								break;
-							}
+								currentTrigger = (targetDockable.body, Region.Center);
+                                isValid = allow.Center;
+                            }
 						}
 						else
 						{
-							var posInBody = e.GetPosition(targetDockable.body);
-							if (posInBody is { X: >= 0, Y: >= 0 })
-							{
-								if (sourceDockable == targetDockable && sourceDockable.Items.Count is 1)
-								{
-									currentTrigger = (targetDockable.body, Region.Center);
-									isValid = allow.Center;
-								}
-								else if (posInBody.X < targetDockable.body.Bounds.Width * 0.25)
-								{
-									currentTrigger = (targetDockable.body, Region.Left);
-                                    isValid = allow.Left;
-                                }
-								else if (posInBody.X > targetDockable.body.Bounds.Width * 0.75)
-								{
-									currentTrigger = (targetDockable.body, Region.Right);
-                                    isValid = allow.Right;
-                                }
-								else if (posInBody.Y < targetDockable.body.Bounds.Height * 0.25)
-								{
-									currentTrigger = (targetDockable.body, Region.Top);
-                                    isValid = allow.Top;
-                                }
-								else if (posInBody.Y > targetDockable.body.Bounds.Height * 0.75)
-								{
-									currentTrigger = (targetDockable.body, Region.Bottom);
-                                    isValid = allow.Bottom;
-                                }
-								else
-								{
-									currentTrigger = (targetDockable.body, Region.Center);
-                                    isValid = allow.Center;
-                                }
-							}
-							else
-							{
-								currentTrigger = (null, Region.None);
-								break;
-							}
+							currentTrigger = (null, Region.None);
 						}
-
-						if (currentTrigger.area is not Region.None)
-						{
-							var adornerTarget = currentTrigger.control is TabItem ? currentTrigger.control : targetDockable;
-							var adornerLayer = AdornerLayer.GetAdornerLayer(adornerTarget);
-							var canvasParent = canvas.GetLogicalParent<AdornerLayer>();
-							canvasParent?.Children.Remove(canvas);
-							adornerLayer.Children.Add(canvas);
-							AdornerLayer.SetAdornedElement(canvas, adornerTarget);
-							sourceDockable.PreparePreviewOverlay(adornerTarget, adornedElement, currentTrigger.area, isValid);
-						}
-						break;
 					}
+                    if (currentTrigger.area is not Region.None)
+					{
+						var adornerTarget = currentTrigger.control is TabItem ? currentTrigger.control : targetDockable;
+						var adornerLayer = AdornerLayer.GetAdornerLayer(adornerTarget);
+						var canvasParent = canvas.GetLogicalParent<AdornerLayer>();
+						canvasParent?.Children.Remove(canvas);
+						adornerLayer.Children.Add(canvas);
+						AdornerLayer.SetAdornedElement(canvas, adornerTarget);
+						targetDockable.PreparePreviewOverlay(adornerTarget, adornedElement, currentTrigger.area, isValid);
+					}
+					
 				}
+				break;
 			}
 			if(currentTrigger is { control: null, area: Region.None })
 				sourceDockable.PreparePreviewOverlay(draggedItem, null, currentTrigger.area, isValid);
@@ -565,7 +569,7 @@ namespace Sharp.DockManager
 			var root = (Window)this.VisualRoot;
 			if (root is null) return;
 			dockableCounterInWindows.TryGetValue(root, out var counter);
-            if (dockable.TabItems.Items.Count is 0 && DockManager.GetAllowClose(dockable) && (counter > 1 || DockManager.GetAllowLastClose(root)))
+            if (dockable.TabItems.Items.Count is 0 && DockManager.GetAllowClose(dockable) && (counter.Count > 1 || DockManager.GetAllowLastClose(root)))
             {
 				dockable.ReplaceWith(null);
             }
@@ -581,7 +585,6 @@ namespace Sharp.DockManager
 		private static DockableControl PrepareNewDockableControl(bool createdIntoNewWindow)
 		{	
 			var tab = sourceDockable.CreateDockable(createdIntoNewWindow);
-			tab.Theme = sourceDockable.Theme;
 			foreach (var removable in selectedItemsFrorDragging)
 			{
 				sourceDockable.TabItems.Items.Remove(removable);
