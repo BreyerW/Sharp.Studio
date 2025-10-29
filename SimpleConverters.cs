@@ -82,12 +82,13 @@ namespace Sharp.Studio
             double w = value.Width; 
             var width = w;
 
-            var _polygonPoints = new List<Point>(4);
-
-            _polygonPoints.Add(new Point(0, h));
-            _polygonPoints.Add(new Point(20, 0));
-            _polygonPoints.Add(new Point(width - 20, 0));
-            _polygonPoints.Add(new Point(width, h));
+            var _polygonPoints = new List<Point>(4)
+			{
+				new Point(0, h),
+				new Point(20, 0),
+				new Point(width - 20, 0),
+				new Point(width, h)
+			};
 
             var polygon = new Polygon();
             polygon.Points = _polygonPoints;
