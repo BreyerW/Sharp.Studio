@@ -16,16 +16,16 @@ namespace Sharp.DockManager
         public static void SetAsColumn(Control c, int column)
         {
             Grid.SetRow(c, 0);
-            Grid.SetRowSpan(c, 3);
+            //Grid.SetRowSpan(c, 3);
             Grid.SetColumn(c, column);
-            Grid.SetColumnSpan(c, 1);
+            //Grid.SetColumnSpan(c, 1);
         }
         public static void SetAsRow(Control c, int row)
         {
             Grid.SetRow(c, row);
-            Grid.SetRowSpan(c, 1);
+            //Grid.SetRowSpan(c, 1);
             Grid.SetColumn(c, 0);
-            Grid.SetColumnSpan(c, 3);
+            //Grid.SetColumnSpan(c, 3);
         }
         //can always use DetachedFrom*Tree to clean up any special containers like Grid with splitters
         //or listen to on removed event on collections
@@ -36,20 +36,20 @@ namespace Sharp.DockManager
 			{
 				if (replacement is null)
 				{
-                    var i = p.Children.IndexOf(toBeReplaced);
-                    var replace = p.Children[i is 0 ? 2 : 0];
-                    Helpers.CopyGridProperties(p, replace);
-                    p.Children.Clear();
-                    if (p.GetLogicalParent<Grid>() is { Name: "dockable" } g2)
-                    {
-                        var ind = g2.Children.IndexOf(p);
-                        g2.Children[ind] = replace;
-                    }
-                    else
-                    {
-                        p.ReplaceWith(replace);
-                    }
-                }
+					var i = p.Children.IndexOf(toBeReplaced);
+					var replace = p.Children[i is 0 ? 2 : 0];
+					Helpers.CopyGridProperties(p, replace);
+					p.Children.Clear();
+					if (p.GetLogicalParent<Grid>() is { Name: "dockable" } g2)
+					{
+						var ind = g2.Children.IndexOf(p);
+						g2.Children[ind] = replace;
+					}
+					else
+					{
+						p.ReplaceWith(replace);
+					}
+				}
 				else
 				{
 					var i = p.Children.IndexOf(toBeReplaced);
@@ -72,7 +72,11 @@ namespace Sharp.DockManager
 				d.Child = replacement;
 			}
 			else
-				DockableControl.sourceDockable.ReplaceControlRequested(toBeReplaced,replacement);
+			{
+				var sourceDockable = toBeReplaced.FindLogicalAncestorOfType<DockableControl>(true);
+				sourceDockable?.ReplaceControlRequested(toBeReplaced,replacement);
+			}
+				
 		}
 	}
 }

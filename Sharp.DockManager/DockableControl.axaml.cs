@@ -33,10 +33,9 @@ namespace Sharp.DockManager
     }
     public abstract partial  class DockableControl : TabControl
 	{
-		//TODO: add removal of closing windows
 		protected static Dictionary<Window,HashSet<DockableControl>> dockableCounterInWindows = new();
 		protected static bool isDragging = false;
-		protected static int dragDisposed = 0;
+		protected static int dropCounter = 0;
 		protected static bool shiftWasPressed = false;
 		protected static PointerPressedEventArgs lefTButtonPressEvent;
 
@@ -56,7 +55,7 @@ namespace Sharp.DockManager
 		protected internal static DockableControl sourceDockable = null;
 		protected static PixelPoint screenMousePosOffset;
 
-		protected static List<DockableItem> selectedItemsFrorDragging = new ();
+		protected static HashSet<DockableItem> selectedItemsFrorDragging = new ();
 		private static Window[] sortedWindows;
 		protected static Border adornedElement = new ();
 		protected static Canvas canvas = new ();
@@ -116,8 +115,9 @@ namespace Sharp.DockManager
 			});
 			InputElement.PointerMovedEvent.AddClassHandler<Interactive>((s, e) =>
 			{
+				if(sourceDockable is not null)
+					e.Handled = true;
 				PointerMoved(e);
-				e.Handled = true;
 			});
 
 			draggedItem.PositionChanged += DraggedItem_PositionChanged;
@@ -148,7 +148,7 @@ namespace Sharp.DockManager
 					foreach (var dockable in dockables)
 					{
 						var locPos = dockable.GetVisualParent().PointToClient(screenPos);
-						if (dockable.Bounds.Contains(locPos))
+						if (dockable.IsEffectivelyVisible && dockable.Bounds.Contains(locPos))
 						{
 							targetDockable = dockable;
 							break;
@@ -246,7 +246,7 @@ namespace Sharp.DockManager
 			if (!isValid)
 				lastTrigger.area = Region.None;
 		}
-		private static Grid GridFactory() => new Grid() { Name="dockable", RowDefinitions = new("*,Auto,*"), ColumnDefinitions = new("*,Auto,*") };
+		private static Grid GridFactory(double thickness, bool column) => new Grid() { Name="dockable", RowDefinitions = column ? new() : new($"*,Auto,*"), ColumnDefinitions = column ? new($"*,Auto,*") : new() };
 		private static GridSplitter SplitterFactory(double thickness, bool column)
 		{
 			var splitter = new GridSplitter()
@@ -255,7 +255,7 @@ namespace Sharp.DockManager
 				Height = column ? double.NaN : thickness,
 				MinWidth = 0,
 				MinHeight = 0,
-				ResizeDirection = column ? GridResizeDirection.Columns : GridResizeDirection.Rows
+				ResizeDirection = column ? GridResizeDirection.Columns : GridResizeDirection.Rows,
 			};
 			if (column)
 			{
@@ -267,15 +267,15 @@ namespace Sharp.DockManager
 			}
 			return splitter;
 		}
-		
 
 		private static void SplitTabControl(Control existing, Control added, Region dockForAdded)
 		{
-			var grid=GridFactory();
+			var isColumn = dockForAdded is Region.Left or Region.Right;
+			var grid=GridFactory(2.5, isColumn);
 			Helpers.CopyGridProperties(existing, grid);
 			existing.ReplaceWith(grid);
 			
-			var splitter = SplitterFactory(2, dockForAdded is Region.Left or Region.Right);
+			var splitter = SplitterFactory(2.5, isColumn);
 			grid.Children.Add(existing);
 			grid.Children.Add(splitter);
 			grid.Children.Add(added);
@@ -358,8 +358,6 @@ namespace Sharp.DockManager
 			if (exists)
 			{
 				dockables.Remove(this);
-				/*if (dockables.Count == 0)
-					CloseWindowRequested(win);*/
 			}
         }
         protected virtual void DockableControl_SelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -402,12 +400,10 @@ namespace Sharp.DockManager
 					DropFinished();
 					return;
 				}
-				Interlocked.Exchange(ref dragDisposed, 0);
+				Interlocked.Exchange(ref dropCounter, 0);
 				shiftWasPressed = e.KeyModifiers == KeyModifiers.Shift;
 				sourceDockable.SelectedItem = s.Content;
 				screenMousePosOffset = s.PointToScreen(e.GetPosition(s)) - s.PointToScreen(new Point(0,0));
-				//selectedItemsFrorDragging.Clear();
-				//selectedItemsFrorDragging.Add(s.Content as DockableItem);
 				lefTButtonPressEvent = e;
 				var Width = sourceDockable.Bounds.Width;
 				var Height = sourceDockable.Bounds.Height;
@@ -421,9 +417,11 @@ namespace Sharp.DockManager
 		protected override void OnLostFocus(RoutedEventArgs e)
 		{
 			base.OnLostFocus(e);
-			if (isDragging && Interlocked.Increment(ref dragDisposed) == 1)
+			//OnLostFocus might be called multiple times per single drop
+			//so to prevent issues stemming from this, we limit entry to once via Increment
+			if (isDragging && Interlocked.Increment(ref dropCounter) == 1)
 			{
-				DropTab(null);
+				DropTab();
 				DropFinished();
 			}
 		}
@@ -436,14 +434,6 @@ namespace Sharp.DockManager
         private static void DropFinished()
 		{
 			sourceDockable?.OnStopDrag();
-			/*foreach (var (win, counter) in dockableCounterInWindows)
-			{
-				if (counter.Count == 0)
-				{
-					dockableCounterInWindows.Remove(win);
-					sourceDockable?.CloseWindowRequested(win);
-				}
-			}*/
 			sourceDockable = null;
 			canvas.IsVisible = false;
 			selectedItemsFrorDragging.Clear();
@@ -468,11 +458,9 @@ namespace Sharp.DockManager
 				if (tab.Bounds.Contains(scrollerMousePos))
 					return;
 				//do it only once when starting the drag
-				if (!isDragging)
-				{
-					UpdateZOrder();
-					sourceDockable.OnStartDrag(e);
-                }
+				//this is guaranteed by BeginMoveDrag blocking all pointer related events
+				UpdateZOrder();
+				sourceDockable.OnStartDrag(e);
                 isDragging = true;
 				draggedItem.Position = scroll.PointToScreen(scrollerMousePos) - screenMousePosOffset;
 				draggedItem.BeginMoveDrag(lefTButtonPressEvent);
@@ -631,7 +619,7 @@ namespace Sharp.DockManager
 			}
 			return tab;
 		}
-		private static void DropTab(PointerReleasedEventArgs e)
+		private static void DropTab()
 		{
 			if (lastTrigger.control is null)
 			{
